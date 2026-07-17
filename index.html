@@ -28,7 +28,7 @@
             --input-bg: rgba(2, 6, 23, 0.8);
         }
 
-        /* KHẮC PHỤC LỖI CUỘN TRANG (SCROLL FIX) */
+        /* KHẮC PHỤC LỖI CUỘN TRANG */
         html, body {
             margin: 0;
             padding: 0;
@@ -38,7 +38,7 @@
             overflow-y: auto; 
         }
 
-        /* CHẾ ĐỘ SÁNG (LIGHT MODE) */
+        /* CHẾ ĐỘ SÁNG */
         .light-mode {
             --theme-color: #ec4899;
             --theme-shadow: #fbcfe8;
@@ -57,7 +57,7 @@
             transition: background 0.5s ease, color 0.5s ease;
         }
 
-        /* FONTS CƠ BẢN */
+        /* FONTS */
         .font-serif-custom { font-family: 'Playfair Display', serif; }
         .font-handwriting { font-family: 'Dancing Script', cursive; font-size: 1.15rem; }
         .font-modern { font-family: 'Montserrat', sans-serif; }
@@ -93,7 +93,7 @@
         
         .keypad-locked button { opacity: 0.5; pointer-events: none; }
         
-        /* HIỆU ỨNG NỀN VÀ MỞ KHÓA */
+        /* HIỆU ỨNG */
         @keyframes float-up {
             0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
             50% { opacity: 0.8; }
@@ -108,13 +108,26 @@
         }
         .anim-unlock { animation: unlock-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
-        /* CHAT BUBBLES CSS - Đã thêm tính năng tự ngắt dòng (word-wrap) */
-        .chat-bubble-mine { background: var(--theme-color); color: white; border-bottom-right-radius: 4px; word-wrap: break-word; white-space: pre-wrap; }
-        .chat-bubble-other { background: rgba(255,255,255,0.1); border-bottom-left-radius: 4px; word-wrap: break-word; white-space: pre-wrap; }
+        /* CHAT BUBBLES CSS - Đã nâng cấp UI, bo góc đẹp, chữ to rõ, chống tràn */
+        .chat-bubble-mine { 
+            background: var(--theme-color); 
+            color: white; 
+            border-radius: 14px 14px 0 14px; 
+            word-break: break-word; 
+            white-space: pre-wrap; 
+            padding: 10px 14px;
+        }
+        .chat-bubble-other { 
+            background: rgba(255, 255, 255, 0.15); 
+            border-radius: 14px 14px 14px 0; 
+            word-break: break-word; 
+            white-space: pre-wrap; 
+            padding: 10px 14px;
+        }
         .online-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #10b981; display: inline-block; box-shadow: 0 0 5px #10b981; }
         .offline-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #64748b; display: inline-block; }
 
-        /* THEME-SPECIFIC CSS CHI TIẾT */
+        /* THEMES CHI TIẾT */
         .theme-forest .keypad-btn { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; background: rgba(45, 66, 63, 0.8); border: 2px solid #86efac; color: #fef9c3; }
         .theme-forest .glass-panel { background: rgba(15, 23, 42, 0.4); border-color: rgba(134, 239, 172, 0.2); }
         .theme-coffee .letter-container { position: relative; z-index: 1; }
@@ -153,95 +166,97 @@
         <i class="fa-solid fa-book-journal-whills"></i>
     </button>
 
-    <!-- GIAO DIỆN SỔ TAY & TÌM KIẾM -->
-    <div id="notebookModal" class="fixed inset-0 bg-slate-950/95 z-50 hidden flex flex-col items-center p-6 pt-10 backdrop-blur-md">
-        <!-- Đã sửa h-[85vh] thành h-full để chống tràn khung -->
-        <div class="w-full max-w-md w-full glass-panel rounded-2xl p-6 relative flex flex-col h-full">
-            <button onclick="toggleNotebook()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl z-50">
+    <!-- GIAO DIỆN SỔ TAY & TÌM KIẾM - ĐÃ FIX CHIỀU CAO TRÁNH TRÀN/CHE KHUẤT -->
+    <div id="notebookModal" class="fixed inset-0 bg-slate-950/95 z-50 hidden flex flex-col items-center justify-center p-4 backdrop-blur-md">
+        <!-- Sử dụng max-h-[92dvh] và h-[92dvh] để neo vừa khít màn hình, không bị overflow che mất khung chat -->
+        <div class="w-full max-w-md glass-panel rounded-2xl p-4 md:p-6 relative flex flex-col h-[92dvh] max-h-[850px]">
+            <button onclick="toggleNotebook()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl z-50 w-8 h-8 flex items-center justify-center bg-slate-800 rounded-full">
                 <i class="fa-solid fa-xmark"></i>
             </button>
             <h2 class="text-xl font-bold mb-1 text-pink-400"><i class="fa-solid fa-book-open"></i> Sổ Tay Của Tôi</h2>
             
             <!-- HỆ THỐNG 3 TABS -->
-            <div class="flex gap-2 mb-4 mt-2">
-                <button onclick="switchMainTab('timeline')" id="tabTimeline" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-pink-600 text-white transition">Lịch sử</button>
-                <button onclick="switchMainTab('rooms')" id="tabRooms" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-slate-300 transition">Quản lý Nhóm</button>
-                <button onclick="switchMainTab('ranking')" id="tabRanking" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-slate-300 transition">Xếp hạng</button>
+            <div class="flex gap-2 mb-4 mt-3">
+                <button onclick="switchMainTab('timeline')" id="tabTimeline" class="flex-1 py-2 text-xs font-bold rounded-lg bg-pink-600 text-white transition">Lịch sử</button>
+                <button onclick="switchMainTab('rooms')" id="tabRooms" class="flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-300 transition">Quản lý Nhóm</button>
+                <button onclick="switchMainTab('ranking')" id="tabRanking" class="flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-300 transition">Xếp hạng</button>
             </div>
 
             <!-- TAB 1: TIMELINE LỊCH SỬ THƯ -->
             <div id="viewTimeline" class="flex-1 flex flex-col min-h-0">
-                <input type="text" id="searchInput" onkeyup="filterTimeline()" placeholder="🔍 Tìm kiếm tên, nội dung thư..." class="w-full input-style rounded-xl px-4 py-2.5 text-xs outline-none mb-3">
-                <div id="timelineContainer" class="flex-1 overflow-y-auto space-y-3 pr-2">
+                <input type="text" id="searchInput" onkeyup="filterTimeline()" placeholder="🔍 Tìm kiếm tên, nội dung thư..." class="w-full input-style rounded-xl px-4 py-3 text-sm outline-none mb-3">
+                <div id="timelineContainer" class="flex-1 overflow-y-auto space-y-3 pr-2 pb-2">
                     <!-- Dữ liệu Timeline load vào đây -->
                 </div>
             </div>
 
             <!-- TAB 2: QUẢN LÝ NHÓM (5 PHẦN) -->
             <div id="viewRooms" class="flex-1 flex flex-col min-h-0 hidden">
-                <div id="roomListScreen" class="flex-1 flex flex-col">
+                <div id="roomListScreen" class="flex-1 flex flex-col min-h-0">
                     <!-- Phần 2 & 3: Nút Tạo Nhóm -->
                     <div class="flex gap-2 mb-3">
-                        <button onclick="createCustomRoom('mail')" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-pink-400 text-[10px] font-bold rounded-xl transition border border-pink-500/30 flex justify-center items-center gap-1">
+                        <button onclick="createCustomRoom('mail')" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-pink-400 text-xs font-bold rounded-xl transition border border-pink-500/30 flex justify-center items-center gap-1">
                             <i class="fa-solid fa-envelope"></i> Tạo Nhóm Thư
                         </button>
-                        <button onclick="createCustomRoom('chat')" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-blue-400 text-[10px] font-bold rounded-xl transition border border-blue-500/30 flex justify-center items-center gap-1">
+                        <button onclick="createCustomRoom('chat')" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-blue-400 text-xs font-bold rounded-xl transition border border-blue-500/30 flex justify-center items-center gap-1">
                             <i class="fa-solid fa-comments"></i> Tạo Nhóm Chat
                         </button>
                     </div>
                     
-                    <div class="flex gap-2 mb-2">
-                        <input type="text" id="roomSearchInput" placeholder="Nhập ID Nhóm..." class="flex-1 input-style rounded-xl px-4 py-2.5 text-xs outline-none uppercase">
-                        <button onclick="searchAndJoinRoom()" class="bg-pink-600 text-white px-4 rounded-xl text-xs font-bold">Vào Nhóm</button>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="roomSearchInput" placeholder="Nhập ID Nhóm..." class="flex-1 input-style rounded-xl px-4 py-2.5 text-sm outline-none uppercase">
+                        <button onclick="searchAndJoinRoom()" class="bg-pink-600 hover:bg-pink-500 text-white px-5 rounded-xl text-xs font-bold transition shadow-lg shadow-pink-500/20">Vào Nhóm</button>
                     </div>
 
                     <!-- Phần 1: Lịch sử Nhóm -->
-                    <h4 class="text-[10px] font-bold opacity-70 mt-2 mb-2 uppercase tracking-wider">Lịch sử Nhóm Đã Tham Gia</h4>
-                    <div id="joinedRoomsList" class="flex-1 overflow-y-auto space-y-2 pr-2">
+                    <h4 class="text-[11px] font-bold opacity-70 mt-2 mb-2 uppercase tracking-wider">Lịch sử Nhóm Đã Tham Gia</h4>
+                    <div id="joinedRoomsList" class="flex-1 overflow-y-auto space-y-2 pr-2 pb-2">
                         <!-- Render lịch sử phòng -->
                     </div>
                 </div>
 
-                <!-- GIAO DIỆN BÊN TRONG PHÒNG -->
-                <div id="activeRoomScreen" class="flex-1 flex flex-col hidden relative">
-                    <button onclick="backToRoomList()" class="text-xs text-pink-400 mb-2 font-bold"><i class="fa-solid fa-arrow-left"></i> Quay lại danh sách</button>
-                    <div class="p-3 bg-slate-800 rounded-xl mb-3 border border-slate-700 flex justify-between items-center">
+                <!-- GIAO DIỆN BÊN TRONG PHÒNG - Đã tối ưu Flex min-h-0 -->
+                <div id="activeRoomScreen" class="flex-1 flex flex-col hidden relative min-h-0">
+                    <button onclick="backToRoomList()" class="text-xs text-pink-400 mb-3 font-bold flex items-center gap-1 w-max"><i class="fa-solid fa-arrow-left"></i> Quay lại danh sách</button>
+                    <div class="p-3 bg-slate-800/80 rounded-xl mb-3 border border-slate-700 shrink-0 flex justify-between items-center backdrop-blur-sm">
                         <div>
                             <h3 id="activeRoomTitle" class="font-bold text-sm text-white">ID: K12A1</h3>
-                            <p class="text-[9px] text-slate-400 mt-1" id="activeRoomTypeLabel">Loại: Nhóm Hỗn Hợp</p>
+                            <p class="text-[10px] text-slate-400 mt-0.5" id="activeRoomTypeLabel">Loại: Nhóm Hỗn Hợp</p>
                         </div>
                         <div class="text-right">
                             <!-- Phần 4: Số lượng người -->
-                            <div class="text-xs text-slate-300 font-bold"><i class="fa-solid fa-users"></i> <span id="roomMemberCount">1</span> thành viên</div>
+                            <div class="text-[11px] text-slate-300 font-bold"><i class="fa-solid fa-users"></i> <span id="roomMemberCount">1</span> thành viên</div>
                             <!-- Phần 5: Trạng thái Online -->
-                            <div class="text-[10px] text-emerald-400 mt-0.5"><span class="online-dot mr-1"></span><span id="roomOnlineCount">1</span> đang online</div>
+                            <div class="text-[10px] text-emerald-400 mt-1"><span class="online-dot mr-1"></span><span id="roomOnlineCount">1</span> đang online</div>
                         </div>
                     </div>
 
-                    <div class="flex gap-2 mb-3">
+                    <div class="flex gap-2 mb-3 shrink-0">
                         <button onclick="switchRoomInnerTab('mail')" id="innerTabMail" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-pink-600 text-white">Thư Mật</button>
                         <button onclick="switchRoomInnerTab('chat')" id="innerTabChat" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-slate-300">Chat Nhóm</button>
                     </div>
 
                     <!-- Room Tab: Thư -->
-                    <div id="roomInnerMail" class="flex-1 overflow-y-auto pr-2 space-y-2">
-                        <div class="text-center mb-2">
-                            <button onclick="useCurrentRoomToCreateLetter()" class="text-[10px] bg-pink-500/20 text-pink-400 px-3 py-1.5 rounded-full border border-pink-500/30">
-                                <i class="fa-solid fa-plus"></i> Gửi thư vào nhóm này
+                    <div id="roomInnerMail" class="flex-1 overflow-y-auto pr-2 pb-2 space-y-2">
+                        <div class="text-center mb-3">
+                            <button onclick="useCurrentRoomToCreateLetter()" class="text-xs font-semibold bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 px-4 py-2 rounded-full border border-pink-500/30 transition">
+                                <i class="fa-solid fa-plus"></i> Viết thư vào nhóm này
                             </button>
                         </div>
                         <div id="roomMailContainer"></div>
                     </div>
 
-                    <!-- Room Tab: Chat -->
-                    <div id="roomInnerChat" class="flex-1 flex flex-col hidden min-h-0 bg-slate-900/50 rounded-xl border border-slate-700/50 overflow-hidden">
-                        <!-- Đã thêm pb-20 (padding-bottom) để chống che khuất chat form -->
-                        <div id="chatMessages" class="flex-1 overflow-y-auto p-3 pb-20 space-y-3">
+                    <!-- Room Tab: Chat (Đã thiết kế lại Khung to, bám sát dưới đáy, không bị che) -->
+                    <div id="roomInnerChat" class="flex-1 flex flex-col hidden min-h-0 bg-slate-900/60 rounded-xl border border-slate-700/60 overflow-hidden relative shadow-inner">
+                        <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth">
                             <!-- Tin nhắn -->
                         </div>
-                        <div class="p-2 border-t border-slate-700 flex gap-2 bg-slate-900">
-                            <input type="text" id="chatInput" onkeypress="handleChatEnter(event)" placeholder="Nhắn tin..." class="flex-1 bg-slate-800 rounded-lg px-3 text-xs text-white outline-none">
-                            <button onclick="sendChatMessage()" class="bg-pink-600 text-white w-8 h-8 rounded-lg flex items-center justify-center"><i class="fa-solid fa-paper-plane text-xs"></i></button>
+                        <!-- Thanh nhập liệu ghim chặt ở dưới đáy container -->
+                        <div class="p-3 border-t border-slate-700/60 flex gap-2 bg-slate-800/90 backdrop-blur-md shrink-0">
+                            <input type="text" id="chatInput" onkeypress="handleChatEnter(event)" placeholder="Gửi tin nhắn..." class="flex-1 bg-slate-900/80 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition border border-slate-700/80">
+                            <button onclick="sendChatMessage()" class="bg-pink-600 hover:bg-pink-500 active:scale-95 text-white w-11 h-11 rounded-xl flex items-center justify-center transition shadow-lg shadow-pink-500/30 shrink-0">
+                                <i class="fa-solid fa-paper-plane text-sm"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -249,12 +264,12 @@
 
             <!-- TAB 3: BẢNG XẾP HẠNG (3 PHẦN) -->
             <div id="viewRanking" class="flex-1 flex flex-col min-h-0 hidden">
-                <select id="rankingFilter" onchange="loadRankings()" class="w-full input-style rounded-xl px-4 py-2 text-xs outline-none mb-4 font-bold text-pink-400 border-pink-500/30">
+                <select id="rankingFilter" onchange="loadRankings()" class="w-full input-style rounded-xl px-4 py-3 text-sm outline-none mb-4 font-bold text-pink-400 border-pink-500/30">
                     <option value="points">Phần 1: Xếp Hạng Cá Nhân (Điểm)</option>
                     <option value="mailGroups">Phần 2: Xếp Hạng Nhóm Gửi Thư</option>
                     <option value="chatGroups">Phần 3: Xếp Hạng Nhóm Chat</option>
                 </select>
-                <div id="rankingContainer" class="flex-1 overflow-y-auto space-y-2 pr-2">
+                <div id="rankingContainer" class="flex-1 overflow-y-auto space-y-2 pr-2 pb-2">
                     <!-- Dữ liệu xếp hạng -->
                 </div>
             </div>
@@ -434,7 +449,7 @@
             </div>
         </div>
 
-        <!-- MÀN HÌNH KHÓA VÀ XEM THƯ (GIỮ NGUYÊN) -->
+        <!-- MÀN HÌNH KHÓA VÀ XEM THƯ -->
         <div id="lockScreen" class="glass-panel rounded-3xl p-8 shadow-2xl hidden relative">
             <div id="lockoutOverlay" class="absolute inset-0 bg-slate-950/90 rounded-3xl z-20 flex flex-col items-center justify-center hidden backdrop-blur-sm">
                 <i class="fa-solid fa-user-lock text-4xl text-rose-500 mb-3 animate-bounce"></i>
@@ -563,7 +578,7 @@
         let presenceUnsubscribe = null;
         
         // Quản lý trạng thái hiện diện (Presence)
-        setInterval(updatePresence, 30000); // Cập nhật online mỗi 30s
+        setInterval(updatePresence, 30000); 
         
         async function updatePresence() {
             if(!currentActiveRoomId) return;
@@ -605,9 +620,9 @@
             document.getElementById('viewRooms').classList.toggle('hidden', tab !== 'rooms');
             document.getElementById('viewRanking').classList.toggle('hidden', tab !== 'ranking');
             
-            document.getElementById('tabTimeline').className = tab === 'timeline' ? "flex-1 py-1.5 text-xs font-bold rounded-lg bg-pink-600 text-white" : "flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-slate-300";
-            document.getElementById('tabRooms').className = tab === 'rooms' ? "flex-1 py-1.5 text-xs font-bold rounded-lg bg-pink-600 text-white" : "flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-slate-300";
-            document.getElementById('tabRanking').className = tab === 'ranking' ? "flex-1 py-1.5 text-xs font-bold rounded-lg bg-pink-600 text-white" : "flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-slate-300";
+            document.getElementById('tabTimeline').className = tab === 'timeline' ? "flex-1 py-2 text-xs font-bold rounded-lg bg-pink-600 text-white" : "flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-300";
+            document.getElementById('tabRooms').className = tab === 'rooms' ? "flex-1 py-2 text-xs font-bold rounded-lg bg-pink-600 text-white" : "flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-300";
+            document.getElementById('tabRanking').className = tab === 'ranking' ? "flex-1 py-2 text-xs font-bold rounded-lg bg-pink-600 text-white" : "flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-300";
         }
 
         // --- QUẢN LÝ HỆ THỐNG NHÓM (GROUP SYSTEM) ---
@@ -619,12 +634,12 @@
             if(rooms.length === 0) { container.innerHTML = `<p class="text-[10px] text-center opacity-50">Chưa có nhóm nào</p>`; return; }
             
             container.innerHTML = rooms.map(r => `
-                <div class="p-2 bg-slate-900/50 rounded-lg border border-slate-700/50 flex justify-between items-center cursor-pointer hover:bg-slate-800" onclick="enterRoom('${r.id}')">
+                <div class="p-3 bg-slate-900/50 rounded-lg border border-slate-700/50 flex justify-between items-center cursor-pointer hover:bg-slate-800 transition" onclick="enterRoom('${r.id}')">
                     <div>
-                        <div class="text-xs font-bold text-pink-400 uppercase">${r.id}</div>
-                        <div class="text-[9px] text-slate-400">Loại: ${r.type === 'chat' ? 'Nhóm Chat 💬' : 'Nhóm Thư 💌'}</div>
+                        <div class="text-sm font-bold text-pink-400 uppercase">${r.id}</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">Loại: ${r.type === 'chat' ? 'Nhóm Chat 💬' : 'Nhóm Thư 💌'}</div>
                     </div>
-                    <button class="text-xs text-white bg-pink-600 px-3 py-1 rounded">Vào</button>
+                    <button class="text-xs text-white bg-pink-600 hover:bg-pink-500 px-4 py-1.5 rounded-lg font-semibold shadow-md">Vào</button>
                 </div>
             `).join('');
         }
@@ -643,13 +658,12 @@
             const newRoomId = prefix + Math.random().toString(36).substring(2, 8).toUpperCase();
             
             try {
-                // Tạo phòng trên Firestore
                 await db.collection("rooms").doc(newRoomId).set({
                     id: newRoomId,
-                    type: type, // 'mail' hoặc 'chat'
+                    type: type, 
                     createdAt: Date.now(),
                     creator: myUserId
-                }, { merge: true }); // Sửa lỗi ghi đè, an toàn dữ liệu
+                }, { merge: true }); 
                 
                 alert(`Đã tạo ${type === 'mail' ? 'Nhóm Gửi Thư' : 'Nhóm Chat'} thành công!\nID: ${newRoomId}`);
                 saveRoomToHistory(newRoomId, type);
@@ -657,7 +671,7 @@
             } catch(e) { alert("Lỗi khi tạo phòng."); }
         }
 
-        // Tham gia Nhóm (Tìm kiếm)
+        // Tham gia Nhóm
         async function searchAndJoinRoom() {
             const roomId = document.getElementById("roomSearchInput").value.trim().toUpperCase();
             if(!roomId) return;
@@ -669,7 +683,7 @@
                     enterRoom(roomId);
                 } else {
                     alert("Nhóm không tồn tại! Đang tạo thành Nhóm Hỗn Hợp...");
-                    await db.collection("rooms").doc(roomId).set({ id: roomId, type: 'mixed', createdAt: Date.now() }, { merge: true }); // Cập nhật sửa lỗi trùng
+                    await db.collection("rooms").doc(roomId).set({ id: roomId, type: 'mixed', createdAt: Date.now() }, { merge: true });
                     saveRoomToHistory(roomId, 'mixed');
                     enterRoom(roomId);
                 }
@@ -683,20 +697,19 @@
             document.getElementById("activeRoomScreen").classList.remove("hidden");
             document.getElementById("activeRoomTitle").innerText = `ID: ${roomId}`;
             
-            updatePresence(); // Đánh dấu online ngay
+            updatePresence(); 
 
             const doc = await db.collection("rooms").doc(roomId).get();
             const type = doc.exists ? doc.data().type : 'mixed';
             document.getElementById("activeRoomTypeLabel").innerText = type === 'mail' ? 'Loại: Nhóm Gửi Thư 💌' : (type === 'chat' ? 'Loại: Nhóm Chat 💬' : 'Loại: Nhóm Hỗn Hợp 🌐');
             
-            // Ẩn hiện tab tùy loại phòng
             if(type === 'mail') { switchRoomInnerTab('mail'); document.getElementById("innerTabChat").classList.add("hidden"); }
             else if(type === 'chat') { switchRoomInnerTab('chat'); document.getElementById("innerTabMail").classList.add("hidden"); }
             else { switchRoomInnerTab('mail'); document.getElementById("innerTabChat").classList.remove("hidden"); document.getElementById("innerTabMail").classList.remove("hidden");}
 
             loadRoomMails(roomId);
             listenToChat(roomId);
-            listenToPresence(roomId); // Phần 4 & 5
+            listenToPresence(roomId); 
         }
 
         function backToRoomList() {
@@ -714,11 +727,18 @@
             document.getElementById('roomInnerChat').classList.toggle('hidden', tab !== 'chat');
             document.getElementById('innerTabMail').className = tab === 'mail' ? "flex-1 py-1.5 text-xs font-bold rounded-lg bg-pink-600 text-white" : "flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-slate-300";
             document.getElementById('innerTabChat').className = tab === 'chat' ? "flex-1 py-1.5 text-xs font-bold rounded-lg bg-pink-600 text-white" : "flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-slate-300";
+            
+            if(tab === 'chat') {
+                setTimeout(() => {
+                    const c = document.getElementById("chatMessages");
+                    c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
+                }, 100);
+            }
         }
 
         function useCurrentRoomToCreateLetter() {
             document.getElementById("roomIdInput").value = currentActiveRoomId;
-            toggleNotebook(); // Đóng modal sổ tay
+            toggleNotebook(); 
             document.getElementById("recipientInput").focus();
         }
 
@@ -728,23 +748,25 @@
             container.innerHTML = '<p class="text-xs text-center"><i class="fa-solid fa-spinner fa-spin text-pink-500"></i> Đang tải thư...</p>';
             try {
                 const snap = await db.collection("messages").where("roomId", "==", roomId.toLowerCase()).get();
-                if(snap.empty) { container.innerHTML = '<p class="text-xs text-rose-500 text-center mt-2">Chưa có thư nào trong phòng này.</p>'; return; }
+                if(snap.empty) { container.innerHTML = '<p class="text-xs text-rose-500 text-center mt-4 bg-rose-500/10 p-3 rounded-lg border border-rose-500/20">Chưa có thư nào trong phòng này.</p>'; return; }
                 
                 container.innerHTML = '';
                 snap.forEach(doc => {
                     const item = doc.data();
                     const url = `${window.location.origin}${window.location.pathname}?id=${doc.id}`;
                     container.innerHTML += `
-                        <div class="p-3 bg-slate-900/50 rounded-lg border border-slate-700/50 mb-2">
-                            <div class="text-xs font-bold text-pink-400 mb-1">Gửi: ${item.recipient}</div>
-                            <a href="${url}" target="_blank" class="text-[10px] text-blue-400 hover:text-blue-300">Mở khóa thư <i class="fa-solid fa-arrow-right"></i></a>
+                        <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-700/50 mb-2 flex justify-between items-center">
+                            <div>
+                                <div class="text-xs font-bold text-pink-400 mb-1">Gửi: ${item.recipient}</div>
+                                <span class="text-[9px] text-slate-400">Có chứa thư mật khóa PIN</span>
+                            </div>
+                            <a href="${url}" target="_blank" class="text-[10px] font-bold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg transition border border-blue-500/20">Mở <i class="fa-solid fa-arrow-right ml-1"></i></a>
                         </div>
                     `;
                 });
             } catch(e) { container.innerHTML = '<p class="text-xs text-rose-500 text-center">Lỗi tải thư.</p>'; }
         }
 
-        // Phần 4 & 5: Lắng nghe trạng thái hiện diện (Số người & Trạng thái Online)
         function listenToPresence(roomId) {
             if(presenceUnsubscribe) presenceUnsubscribe();
             presenceUnsubscribe = db.collection("rooms").doc(roomId).collection("members")
@@ -754,7 +776,6 @@
                     const now = Date.now();
                     snapshot.forEach(doc => {
                         const data = doc.data();
-                        // Nếu hoạt động trong vòng 2 phút qua -> Tính là Online
                         if(now - data.lastActive < 120000) onlineCount++;
                     });
                     
@@ -763,7 +784,7 @@
                 });
         }
 
-        /// Lắng nghe Chat Realtime - Đã tích hợp tính năng hiển thị Tên ID người dùng
+        // LẮNG NGHE CHAT ĐÃ FIX UI (Bong bóng chat to hơn, chữ lớn, fix tràn chữ)
         function listenToChat(roomId) {
             if(chatUnsubscribe) chatUnsubscribe();
             const container = document.getElementById("chatMessages");
@@ -778,22 +799,24 @@
                     snapshot.forEach(doc => {
                         const msg = doc.data();
                         const isMine = msg.senderId === myUserId;
+                        
                         container.innerHTML += `
-                            <div class="flex flex-col ${isMine ? 'items-end' : 'items-start'} mb-3">
-                                <span class="text-[9px] font-bold ${isMine ? 'text-pink-400' : 'text-slate-400'} mb-1 flex items-center gap-1">
+                            <div class="flex flex-col ${isMine ? 'items-end' : 'items-start'} mb-4">
+                                <span class="text-[10px] font-bold ${isMine ? 'text-pink-400' : 'text-slate-400'} mb-1 flex items-center gap-1 opacity-80 pl-1 pr-1">
                                     <i class="fa-solid fa-circle-user"></i> ${msg.senderId}
                                 </span>
-                                <div class="px-3 py-2 text-xs max-w-[80%] ${isMine ? 'chat-bubble-mine' : 'chat-bubble-other'} shadow-md">
+                                <div class="text-sm max-w-[85%] ${isMine ? 'chat-bubble-mine shadow-pink-500/20' : 'chat-bubble-other border border-slate-700/50'} shadow-md leading-relaxed">
                                     ${msg.text}
                                 </div>
                             </div>
                         `;
                     });
-                    container.scrollTop = container.scrollHeight;
+                    setTimeout(() => { container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' }); }, 100);
                 });
         }
 
         function handleChatEnter(e) { if(e.key === 'Enter') sendChatMessage(); }
+        
         async function sendChatMessage() {
             const input = document.getElementById("chatInput");
             const text = input.value.trim();
@@ -807,6 +830,9 @@
                     text: text,
                     timestamp: Date.now()
                 });
+                // Tự động scroll nhẹ khi vừa gửi
+                const container = document.getElementById("chatMessages");
+                setTimeout(() => { container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' }); }, 50);
             } catch(e) { alert("Lỗi gửi tin nhắn"); }
         }
 
@@ -814,36 +840,29 @@
         async function loadRankings() {
             const type = document.getElementById("rankingFilter").value;
             const container = document.getElementById("rankingContainer");
-            container.innerHTML = '<p class="text-xs text-center"><i class="fa-solid fa-spinner fa-spin text-pink-500"></i> Đang tính toán...</p>';
+            container.innerHTML = '<div class="flex flex-col items-center justify-center py-4"><div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500 mb-2"></div><p class="text-xs text-pink-400">Đang tính toán bảng vàng...</p></div>';
             
             try {
                 if(type === 'points') {
-                    // Xếp hạng Điểm được cập nhật hiển thị User ID chuẩn format NKSXXXXXX
                     const snap = await db.collection("messages").limit(100).get();
                     let scores = {};
                     snap.forEach(doc => {
                         let uid = doc.data().userId;
-                        
-                        // Nếu user thiếu ID hoặc ID không chuẩn NKS, tự động tạo ID để không bị lỗi hiển thị
-                        if (!uid || !uid.startsWith('NKS')) {
-                            uid = 'NKS' + doc.id.substring(0, 6).toUpperCase();
-                        }
-                        
+                        if (!uid || !uid.startsWith('NKS')) uid = 'NKS' + doc.id.substring(0, 6).toUpperCase();
                         scores[uid] = (scores[uid] || 0) + 10; 
                     });
                     
                     let sorted = Object.entries(scores).sort((a,b) => b[1] - a[1]).slice(0, 10);
                     container.innerHTML = sorted.map((s, i) => `
-                        <div class="flex justify-between items-center p-3 bg-slate-900/50 rounded-lg border border-slate-700/50 shadow-sm">
-                            <span class="text-xs font-bold ${i===0?'text-amber-400':(i===1?'text-slate-300':(i===2?'text-amber-600':'text-pink-300'))}">
-                                #${i+1} <i class="fa-solid fa-id-badge ml-1 mr-0.5"></i> ${s[0]}
+                        <div class="flex justify-between items-center p-3.5 bg-slate-900/60 rounded-xl border border-slate-700/50 shadow-sm mb-2 hover:bg-slate-800 transition">
+                            <span class="text-sm font-bold ${i===0?'text-amber-400 scale-105':(i===1?'text-slate-300':(i===2?'text-amber-600':'text-pink-300'))} flex items-center gap-2">
+                                <span class="w-6 text-center">#${i+1}</span> <i class="fa-solid fa-id-badge opacity-70"></i> ${s[0]}
                             </span>
-                            <span class="text-xs text-pink-400 font-bold bg-pink-500/10 px-2 py-1 rounded">${s[1]} điểm</span>
+                            <span class="text-xs text-white font-bold bg-gradient-to-r from-pink-600 to-purple-600 px-3 py-1 rounded-full shadow-md">${s[1]} đ</span>
                         </div>
                     `).join('');
                 } 
                 else if(type === 'mailGroups') {
-                    // Xếp hạng Nhóm Gửi Thư
                     const snap = await db.collection("messages").limit(100).get();
                     let groupMails = {};
                     snap.forEach(doc => {
@@ -855,16 +874,15 @@
                     });
                     
                     let sorted = Object.entries(groupMails).sort((a,b) => b[1] - a[1]).slice(0, 10);
-                    if(sorted.length === 0) { container.innerHTML = '<p class="text-xs text-center opacity-50">Chưa có nhóm nào hoạt động.</p>'; return; }
+                    if(sorted.length === 0) { container.innerHTML = '<p class="text-xs text-center opacity-50 py-4">Chưa có nhóm nào hoạt động.</p>'; return; }
                     container.innerHTML = sorted.map((s, i) => `
-                        <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                            <span class="text-xs font-bold text-pink-300"><i class="fa-solid fa-users mr-1"></i> NHÓM ${s[0]}</span>
-                            <span class="text-[10px] bg-pink-600/20 px-2 py-1 rounded text-pink-400">${s[1]} thư</span>
+                        <div class="flex justify-between items-center p-3 bg-slate-900/50 rounded-xl border border-slate-700/50 mb-2">
+                            <span class="text-sm font-bold text-pink-300"><i class="fa-solid fa-users mr-1.5 opacity-70"></i> NHÓM ${s[0]}</span>
+                            <span class="text-[10px] bg-pink-600/20 px-2.5 py-1.5 rounded-lg text-pink-400 font-bold border border-pink-500/20">${s[1]} thư mật</span>
                         </div>
                     `).join('');
                 }
                 else if(type === 'chatGroups') {
-                    // Xếp hạng Nhóm Chat
                     const snap = await db.collection("chats").orderBy("timestamp", "desc").limit(100).get();
                     let groupChats = {};
                     snap.forEach(doc => {
@@ -876,15 +894,15 @@
                     });
                     
                     let sorted = Object.entries(groupChats).sort((a,b) => b[1] - a[1]).slice(0, 10);
-                    if(sorted.length === 0) { container.innerHTML = '<p class="text-xs text-center opacity-50">Chưa có nhóm chat nào hoạt động.</p>'; return; }
+                    if(sorted.length === 0) { container.innerHTML = '<p class="text-xs text-center opacity-50 py-4">Chưa có nhóm chat nào hoạt động.</p>'; return; }
                     container.innerHTML = sorted.map((s, i) => `
-                        <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                            <span class="text-xs font-bold text-blue-300"><i class="fa-solid fa-comments mr-1"></i> NHÓM ${s[0]}</span>
-                            <span class="text-[10px] bg-blue-600/20 px-2 py-1 rounded text-blue-400">${s[1]} tin nhắn</span>
+                        <div class="flex justify-between items-center p-3 bg-slate-900/50 rounded-xl border border-slate-700/50 mb-2">
+                            <span class="text-sm font-bold text-blue-300"><i class="fa-solid fa-comments mr-1.5 opacity-70"></i> NHÓM ${s[0]}</span>
+                            <span class="text-[10px] bg-blue-600/20 px-2.5 py-1.5 rounded-lg text-blue-400 font-bold border border-blue-500/20">${s[1]} tin nhắn</span>
                         </div>
                     `).join('');
                 }
-            } catch(e) { container.innerHTML = '<p class="text-xs text-rose-500 text-center">Lỗi tải dữ liệu.</p>'; }
+            } catch(e) { container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4 bg-rose-500/10 rounded-lg">Lỗi tải dữ liệu. Hãy thử lại.</p>'; }
         }
 
         // --- CÁC HÀM CŨ GIỮ NGUYÊN HOẠT ĐỘNG ---
@@ -1054,24 +1072,24 @@
             container.innerHTML = '';
 
             const filtered = globalTimelineData.filter(t => t.recipient.toLowerCase().includes(keyword) || t.content.toLowerCase().includes(keyword));
-            if(filtered.length === 0) { container.innerHTML = `<p class="text-xs text-center opacity-50">Không có dữ liệu.</p>`; return; }
+            if(filtered.length === 0) { container.innerHTML = `<p class="text-xs text-center opacity-50 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">Không có dữ liệu.</p>`; return; }
 
             filtered.forEach(item => {
                 const date = item.createdAt ? new Date(item.createdAt).toLocaleDateString("vi-VN") : "Gần đây";
                 const url = `${window.location.origin}${window.location.pathname}?id=${item.id}`;
-                const statusHtml = item.isRead ? `<span class="text-emerald-500 font-bold"><i class="fa-regular fa-eye"></i> Đã xem</span>` : `<span class="text-amber-500 font-bold"><i class="fa-solid fa-lock"></i> Chưa mở</span>`;
+                const statusHtml = item.isRead ? `<span class="text-emerald-500 font-bold bg-emerald-500/10 px-2 py-1 rounded"><i class="fa-regular fa-eye"></i> Đã xem</span>` : `<span class="text-amber-500 font-bold bg-amber-500/10 px-2 py-1 rounded"><i class="fa-solid fa-lock"></i> Chưa mở</span>`;
                 
                 container.innerHTML += `
-                    <div class="p-3 bg-slate-900/50 rounded-lg border border-slate-700/50" id="note-${item.id}">
+                    <div class="p-3 bg-slate-900/50 rounded-xl border border-slate-700/50" id="note-${item.id}">
                         <div class="flex justify-between items-start mb-1">
                             <span class="text-xs font-bold text-pink-400">Đến: ${item.recipient} ${item.reaction || ''}</span>
                             <span class="text-[9px] opacity-70">${date}</span>
                         </div>
-                        <p class="text-[10px] opacity-80 mb-2 truncate">${item.content}</p>
+                        <p class="text-[10px] opacity-80 mb-2 truncate text-slate-300">${item.content}</p>
                         <div class="flex justify-between items-center text-[10px]">
                             ${statusHtml}
                             <div class="flex gap-1">
-                                <a href="${url}" target="_blank" class="text-blue-400 hover:text-blue-300 px-2 py-1 bg-slate-800 rounded"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                                <a href="${url}" target="_blank" class="text-blue-400 hover:text-blue-300 px-3 py-1.5 bg-slate-800 rounded shadow-md"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
                             </div>
                         </div>
                     </div>
@@ -1158,7 +1176,7 @@
                 anniversary: document.getElementById("anniversaryInput").value.trim(),
                 pin: document.getElementById("pinInput").value.trim(),
                 creatorToken: myCreatorToken,
-                userId: myUserId, // Bổ sung để hiển thị User ID trong Bảng xếp hạng
+                userId: myUserId, 
                 isRead: false,
                 reaction: null,
                 createdAt: new Date().getTime() 
