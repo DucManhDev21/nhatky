@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Thư viện chụp ảnh thiệp kỹ thuật số -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -193,11 +195,64 @@
             box-shadow: 4px 4px 0 #301934; transition: all 0.1s;
         }
         .theme-gothic .keypad-btn:active { box-shadow: 0 0 0 #301934; transform: translate(4px, 4px); }
+
+        /* Thêm CSS cho nút Ghi âm */
+        .mic-active { animation: pulse-red 1.5s infinite; color: #ef4444 !important; }
+        @keyframes pulse-red { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body id="mainBody" class="flex flex-col items-center p-4 relative">
 
     <div id="fx-container" class="fixed inset-0 pointer-events-none z-0"></div>
+
+    <!-- SỔ TAY NỔI (FAB) -->
+    <button onclick="toggleNotebook()" id="fabNotebook" class="fixed bottom-6 right-6 z-40 bg-pink-600 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-xl hover:bg-pink-500 hover:scale-110 transition hidden">
+        <i class="fa-solid fa-book-journal-whills"></i>
+    </button>
+
+    <!-- GIAO DIỆN SỔ TAY & TÌM KIẾM (TIMELINE & ROOMS) -->
+    <div id="notebookModal" class="fixed inset-0 bg-slate-950/95 z-50 hidden flex flex-col items-center p-6 pt-10 backdrop-blur-md">
+        <div class="w-full max-w-md w-full glass-panel rounded-2xl p-6 relative flex flex-col h-[85vh]">
+            <button onclick="toggleNotebook()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="text-xl font-bold mb-1 text-pink-400"><i class="fa-solid fa-book-open"></i> Sổ Tay Của Tôi</h2>
+            <div id="notebookStats" class="text-xs opacity-70 mb-4">Đang tải dữ liệu xếp hạng...</div>
+
+            <div class="flex gap-2 mb-4">
+                <button onclick="switchTab('timeline')" id="tabTimeline" class="flex-1 py-2 text-xs font-bold rounded-lg bg-pink-600 text-white transition">Timeline</button>
+                <button onclick="switchTab('rooms')" id="tabRooms" class="flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-300 transition">Hộp Thư Nhóm</button>
+            </div>
+
+            <!-- Tab Timeline -->
+            <div id="viewTimeline" class="flex-1 flex flex-col min-h-0">
+                <input type="text" id="searchInput" onkeyup="filterTimeline()" placeholder="🔍 Tìm kiếm tên, nội dung..." class="w-full input-style rounded-xl px-4 py-2.5 text-xs outline-none mb-3">
+                <div id="timelineContainer" class="flex-1 overflow-y-auto space-y-3 pr-2">
+                    <!-- Dữ liệu Timeline load vào đây -->
+                </div>
+            </div>
+
+            <!-- Tab Nhóm -->
+            <div id="viewRooms" class="flex-1 flex flex-col min-h-0 hidden">
+                <div class="flex gap-2 mb-2">
+                    <input type="text" id="roomSearchInput" placeholder="Nhập Mã Phòng (Room ID)..." class="flex-1 input-style rounded-xl px-4 py-2.5 text-xs outline-none">
+                    <button onclick="searchRoom()" class="bg-pink-600 text-white px-4 rounded-xl text-xs font-bold"><i class="fa-solid fa-magnifying-glass"></i></button>
+                </div>
+                <!-- BỔ SUNG NÚT TẠO PHÒNG & TÌM PHÒNG CÁ NHÂN -->
+                <div class="flex gap-2 mb-3">
+                    <button onclick="createNewRoom()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-pink-400 text-[10px] font-bold rounded-xl transition border border-pink-500/30 flex justify-center items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Tạo Phòng Mới
+                    </button>
+                    <button onclick="useMyIdToSearch()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 text-[10px] font-bold rounded-xl transition border border-emerald-500/30 flex justify-center items-center gap-1">
+                        <i class="fa-solid fa-house-user"></i> Phòng Của Tôi
+                    </button>
+                </div>
+                <div id="roomContainer" class="flex-1 overflow-y-auto space-y-3 pr-2">
+                    <p class="text-xs opacity-50 text-center mt-5">Nhập mã phòng để xem các thư trong nhóm</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div id="loadingScreen" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 transition-opacity duration-300">
         <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-pink-500 mb-4"></div>
@@ -214,6 +269,26 @@
     <div class="w-full max-w-md my-4 relative z-10 flex-grow">
 
         <div id="creatorScreen" class="glass-panel rounded-3xl p-6 shadow-2xl hidden">
+            <!-- XẾP HẠNG & CẤP ĐỘ -->
+            <div id="rankingBox" class="flex justify-between items-center mb-6 bg-slate-900/50 p-3 rounded-xl border border-slate-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-amber-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                        <i class="fa-solid fa-medal"></i>
+                    </div>
+                    <div>
+                        <div id="userRankTitle" class="text-xs font-bold text-pink-400 uppercase tracking-wide">Tân Binh Thư Tín</div>
+                        <div id="userRankDetails" class="text-[10px] text-slate-400">0 điểm • 0 thư</div>
+                        <!-- HIỂN THỊ ID CÁ NHÂN (NKSXXXXXX) -->
+                        <div class="text-[10px] mt-1 text-pink-400 font-bold tracking-widest bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20 inline-block">
+                            <i class="fa-solid fa-id-badge"></i> ID: <span id="myUserIdDisplay"></span>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="toggleNotebook()" class="text-[10px] bg-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-700 transition">
+                    <i class="fa-solid fa-book"></i> Mở Sổ tay
+                </button>
+            </div>
+
             <div class="text-center mb-6">
                 <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-pink-500/10 text-pink-500 text-2xl mb-3 border border-pink-500/20 shadow-inner">
                     <i class="fa-solid fa-envelope-open-text"></i>
@@ -225,6 +300,17 @@
             <div id="createForm" class="space-y-4">
                 <input type="hidden" id="editLetterId" value="">
                 
+                <!-- BỔ SUNG TRƯỜNG NHẬP MÃ NHÓM & NÚT DÙNG ID -->
+                <div>
+                    <div class="flex justify-between items-end mb-1.5">
+                        <label class="block text-[11px] font-bold opacity-70 uppercase tracking-wider">Mã Nhóm / Room ID (Tùy chọn)</label>
+                        <button type="button" onclick="useMyIdForRoom()" class="text-[9px] bg-slate-800 text-pink-400 px-2 py-1 rounded hover:bg-slate-700 transition border border-slate-700 flex items-center gap-1">
+                            <i class="fa-solid fa-id-card"></i> Dùng ID của tôi
+                        </button>
+                    </div>
+                    <input type="text" id="roomIdInput" placeholder="Ví dụ: K12A1, NKSX8A9B2..." class="w-full input-style focus:border-pink-500 focus:ring-1 focus:ring-pink-500 rounded-xl px-4 py-2.5 text-xs outline-none transition uppercase">
+                </div>
+
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[10px] font-bold opacity-70 uppercase tracking-wider mb-1.5">Chế độ hiển thị</label>
@@ -268,8 +354,14 @@
                     <input type="text" id="recipientInput" placeholder="Ví dụ: Bé Heo, Vy Vy, Người lạ..." class="w-full input-style focus:border-pink-500 focus:ring-1 focus:ring-pink-500 rounded-xl px-4 py-2.5 text-xs outline-none transition">
                 </div>
 
-                <div>
-                    <label class="block text-[11px] font-bold opacity-70 uppercase tracking-wider mb-1.5">Nội dung bức thư</label>
+                <div class="relative">
+                    <label class="block text-[11px] font-bold opacity-70 uppercase tracking-wider mb-1.5 flex justify-between items-end">
+                        Nội dung bức thư
+                        <!-- NÚT GHI ÂM (VOICE DICTATION) -->
+                        <button type="button" id="btnDictation" onclick="toggleDictation()" class="text-[10px] bg-slate-800 text-pink-400 px-2 py-1 rounded flex items-center gap-1 hover:bg-slate-700 transition" title="Đọc để ghi văn bản">
+                            <i class="fa-solid fa-microphone"></i> Ghi âm
+                        </button>
+                    </label>
                     <textarea id="messageInput" rows="4" placeholder="Ghi những điều bí mật..." class="w-full input-style focus:border-pink-500 focus:ring-1 focus:ring-pink-500 rounded-xl px-4 py-2.5 text-xs outline-none transition resize-none"></textarea>
                 </div>
 
@@ -341,7 +433,7 @@
             </div>
 
             <div id="historyBox" class="mt-6 pt-6 border-t border-slate-700/50">
-                <h4 class="text-[11px] font-bold opacity-70 tracking-wider uppercase mb-3"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Thư bạn đã tạo</h4>
+                <h4 class="text-[11px] font-bold opacity-70 tracking-wider uppercase mb-3"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Thư bạn đã tạo (Lịch sử cục bộ)</h4>
                 <div id="historyList" class="space-y-2 max-h-[180px] overflow-y-auto pr-1"></div>
             </div>
         </div>
@@ -403,24 +495,31 @@
                 <i class="fa-solid fa-heart"></i>
             </div>
             
-            <div class="border-b border-slate-500/30 pb-4 mb-6 relative z-10">
-                <div id="letterHeader" class="flex items-center gap-2 text-xs font-bold tracking-widest uppercase transition-colors duration-300" style="color: var(--theme-color);">
-                    <i id="letterHeaderIcon" class="fa-solid fa-envelope animate-pulse"></i> Thư mật dành riêng cho bạn
+            <!-- KHU VỰC THIỆP ĐỂ XUẤT ẢNH BẰNG HTML2CANVAS -->
+            <div id="digitalCardArea" class="relative z-10 p-2 rounded-xl transition-all">
+                <div class="border-b border-slate-500/30 pb-4 mb-6 relative z-10">
+                    <div id="letterHeader" class="flex items-center gap-2 text-xs font-bold tracking-widest uppercase transition-colors duration-300" style="color: var(--theme-color);">
+                        <i id="letterHeaderIcon" class="fa-solid fa-envelope animate-pulse"></i> Thư mật dành riêng cho bạn
+                    </div>
+                    <h2 id="letterFor" class="text-2xl font-bold font-serif-custom mt-2">Gửi Bé Yêu ✨</h2>
                 </div>
-                <h2 id="letterFor" class="text-2xl font-bold font-serif-custom mt-2">Gửi Bé Yêu ✨</h2>
-            </div>
 
-            <div class="input-style p-5 rounded-2xl mb-4 relative z-10 shadow-inner letter-container">
-                <img id="letterImage" src="" alt="Ảnh đính kèm" class="w-full rounded-xl mb-4 hidden border border-slate-500/30">
-                <p id="letterContent" class="text-sm leading-relaxed font-serif-custom whitespace-pre-line opacity-90 relative z-10">...</p>
-                
-                <!-- TRÌNH PHÁT NHẠC ĐÃ ĐƯỢC SỬA LỖI (BỎ LOADING LAZY VÀ TĂNG KÍCH THƯỚC ĐỂ YOUTUBE KHÔNG CHẶN) -->
-                <div id="musicPlayerContainer" class="hidden" style="position: fixed; top: -9999px; left: -9999px; opacity: 0; pointer-events: none;">
-                    <iframe id="musicPlayer" width="300" height="300" frameborder="0" allow="autoplay; encrypted-media"></iframe>
+                <div class="input-style p-5 rounded-2xl mb-4 relative z-10 shadow-inner letter-container">
+                    <img id="letterImage" src="" alt="Ảnh đính kèm" class="w-full rounded-xl mb-4 hidden border border-slate-500/30">
+                    <p id="letterContent" class="text-sm leading-relaxed font-serif-custom whitespace-pre-line opacity-90 relative z-10">...</p>
+                    
+                    <div id="musicPlayerContainer" class="hidden" style="position: fixed; top: -9999px; left: -9999px; opacity: 0; pointer-events: none;">
+                        <iframe id="musicPlayer" width="300" height="300" frameborder="0" allow="autoplay; encrypted-media"></iframe>
+                    </div>
                 </div>
             </div>
 
             <div id="reactionContainer" class="mb-6 relative z-10 text-center">
+                <!-- NÚT TẢI THIỆP KỸ THUẬT SỐ -->
+                <button onclick="downloadDigitalCard()" class="mb-6 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-5 py-2.5 rounded-full text-xs font-bold shadow-lg hover:scale-105 transition flex items-center justify-center gap-2 mx-auto">
+                    <i class="fa-solid fa-download"></i> Tải ảnh Thiệp Kỷ Niệm
+                </button>
+
                 <p class="text-[10px] font-bold opacity-60 uppercase mb-2">Để lại cảm xúc cho người gửi</p>
                 <div class="flex justify-center gap-4 bg-slate-900/30 py-2 px-4 rounded-full w-max mx-auto border border-slate-500/20 shadow-inner backdrop-blur-sm">
                     <button onclick="sendReaction('❤️')" class="text-2xl hover:scale-125 transition active:scale-90" title="Yêu thích">❤️</button>
@@ -452,16 +551,25 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        // 1. CẤP TOKEN SÁNG TẠO
         let myCreatorToken = localStorage.getItem('creatorToken');
         if (!myCreatorToken) {
             myCreatorToken = Math.random().toString(36).substr(2, 10) + Date.now().toString(36);
             localStorage.setItem('creatorToken', myCreatorToken);
         }
 
+        // 2. CẤP MÃ NGƯỜI DÙNG CÁ NHÂN (NKSXXXXXX)
+        let myUserId = localStorage.getItem('myUserId');
+        if (!myUserId) {
+            myUserId = "NKS" + Math.random().toString(36).substring(2, 8).toUpperCase();
+            localStorage.setItem('myUserId', myUserId);
+        }
+
         let currentPinInput = "";
         let secretLetterId = null; 
         let loadedLetterData = null;
         let lockoutInterval = null; 
+        let globalTimelineData = []; // Cache dữ liệu sổ tay
 
         // CONFIG 13 THEMES
         const THEMES = {
@@ -480,7 +588,46 @@
             'gothic': { color: '#e9d5ff', bgStart: '#301934', bgEnd: '#000000', icon: 'fa-moon', headerIcon: 'fa-spider', fx: 'fog' }
         };
 
-        // THÊM HÀM XỬ LÝ LINK NHẠC ĐƯỢC TỐI ƯU CHO AUTOPLAY
+        // GHI ÂM (VOICE DICTATION - WEB SPEECH API)
+        let recognition = null;
+        let isDictating = false;
+        function toggleDictation() {
+            const btn = document.getElementById('btnDictation');
+            if (isDictating && recognition) {
+                recognition.stop();
+                return;
+            }
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecog = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecog();
+                recognition.lang = 'vi-VN';
+                recognition.continuous = true;
+                recognition.interimResults = false;
+
+                recognition.onstart = function() {
+                    isDictating = true;
+                    btn.classList.add('mic-active');
+                    btn.innerHTML = '<i class="fa-solid fa-microphone-lines"></i> Đang nghe...';
+                };
+                recognition.onresult = function(event) {
+                    let text = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        text += event.results[i][0].transcript;
+                    }
+                    document.getElementById('messageInput').value += text + ' ';
+                };
+                recognition.onend = function() {
+                    isDictating = false;
+                    btn.classList.remove('mic-active');
+                    btn.innerHTML = '<i class="fa-solid fa-microphone"></i> Ghi âm';
+                };
+                recognition.onerror = function() { recognition.stop(); };
+                recognition.start();
+            } else {
+                alert("Trình duyệt của bạn không hỗ trợ tính năng Ghi âm (Web Speech API). Hãy thử dùng Chrome!");
+            }
+        }
+
         function getEmbedUrl(url) {
             if (!url) return "";
             try {
@@ -488,7 +635,6 @@
                     let videoId = "";
                     if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1]?.split("?")[0];
                     else if (url.includes("v=")) videoId = url.split("v=")[1]?.split("&")[0];
-                    // Thêm playsinline=1 để tối ưu trên mobile
                     return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1` : "";
                 } else if (url.includes("spotify.com")) {
                     let trackId = url.split("track/")[1]?.split("?")[0];
@@ -524,7 +670,9 @@
             } else {
                 hideLoading();
                 document.getElementById("creatorScreen").classList.remove("hidden");
-                loadHistory(); 
+                document.getElementById("fabNotebook").classList.remove("hidden");
+                loadHistory(); // Tải lịch sử cũ từ Local Storage
+                loadUserRankingAndNotebook(); // Tải dữ liệu Sổ Tay & Xếp Hạng từ Firestore
             }
         }
 
@@ -586,6 +734,141 @@
                     container.appendChild(el);
                 }
             }
+        }
+
+        // TÍNH NĂNG XẾP HẠNG & SỔ TAY TIMELINE
+        async function loadUserRankingAndNotebook() {
+            try {
+                // Hiển thị ID Người Dùng
+                document.getElementById('myUserIdDisplay').innerText = myUserId;
+
+                const snapshot = await db.collection("messages").where("creatorToken", "==", myCreatorToken).get();
+                globalTimelineData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => b.createdAt - a.createdAt);
+                
+                // Tính toán cấp độ (Rank)
+                const totalLetters = globalTimelineData.length;
+                const points = totalLetters * 10;
+                let rankName = "Tân Binh Thư Tín 🥉";
+                if(points >= 50) rankName = "Người Đưa Thư Chuyên Nghiệp 🥈";
+                if(points >= 150) rankName = "Sứ Giả Cảm Xúc 🥇";
+                if(points >= 300) rankName = "Bậc Thầy Gửi Gắm 💎";
+
+                document.getElementById('userRankTitle').innerText = rankName;
+                document.getElementById('userRankDetails').innerText = `${points} điểm • ${totalLetters} bức thư`;
+                document.getElementById('notebookStats').innerText = `Danh hiệu: ${rankName} - Tổng điểm: ${points}`;
+                
+                filterTimeline(); // Render timeline
+            } catch (e) { console.error("Lỗi tải Sổ tay:", e); }
+        }
+
+        function filterTimeline() {
+            const keyword = document.getElementById("searchInput").value.toLowerCase();
+            const container = document.getElementById("timelineContainer");
+            container.innerHTML = '';
+
+            const filtered = globalTimelineData.filter(t => t.recipient.toLowerCase().includes(keyword) || t.content.toLowerCase().includes(keyword));
+            
+            if(filtered.length === 0) { container.innerHTML = `<p class="text-xs text-center opacity-50">Không có dữ liệu.</p>`; return; }
+
+            filtered.forEach(item => {
+                const date = item.createdAt ? new Date(item.createdAt).toLocaleDateString("vi-VN") : "Gần đây";
+                const url = `${window.location.origin}${window.location.pathname}?id=${item.id}`;
+                const statusHtml = item.isRead ? `<span class="text-emerald-500 font-bold"><i class="fa-regular fa-eye"></i> Đã xem</span>` : `<span class="text-amber-500 font-bold"><i class="fa-solid fa-lock"></i> Chưa mở</span>`;
+                
+                container.innerHTML += `
+                    <div class="p-3 bg-slate-900/50 rounded-lg border border-slate-700/50" id="note-${item.id}">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-xs font-bold text-pink-400">Đến: ${item.recipient} ${item.reaction || ''}</span>
+                            <span class="text-[9px] opacity-70">${date}</span>
+                        </div>
+                        <p class="text-[10px] opacity-80 mb-2 truncate">${item.content}</p>
+                        <div class="flex justify-between items-center text-[10px]">
+                            ${statusHtml}
+                            <div class="flex gap-1">
+                                <button onclick="editLetter('${item.id}'); toggleNotebook();" class="text-amber-400 hover:text-amber-300 px-2 py-1 bg-slate-800 rounded" title="Sửa"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteLetter('${item.id}')" class="text-rose-400 hover:text-rose-300 px-2 py-1 bg-slate-800 rounded" title="Xóa"><i class="fa-solid fa-trash"></i></button>
+                                <a href="${url}" target="_blank" class="text-blue-400 hover:text-blue-300 px-2 py-1 bg-slate-800 rounded" title="Mở Link"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // CÁC HÀM XỬ LÝ PHÒNG (ROOM) CÁ NHÂN VÀ NGẪU NHIÊN
+        function useMyIdForRoom() {
+            document.getElementById('roomIdInput').value = myUserId;
+        }
+
+        function createNewRoom() {
+            const newRoomId = "NKS" + Math.random().toString(36).substring(2, 8).toUpperCase();
+            document.getElementById('roomSearchInput').value = newRoomId;
+            document.getElementById('roomIdInput').value = newRoomId;
+            alert(`Đã tạo phòng mới tự động: ${newRoomId}\nMã đã được điền sẵn. Bạn có thể chia sẻ mã này cho mọi người!`);
+            searchRoom();
+        }
+
+        function useMyIdToSearch() {
+            document.getElementById('roomSearchInput').value = myUserId;
+            searchRoom();
+        }
+
+        // TÌM KIẾM THEO HỘP THƯ NHÓM (ROOM ID)
+        async function searchRoom() {
+            const roomId = document.getElementById("roomSearchInput").value.trim().toLowerCase();
+            const container = document.getElementById("roomContainer");
+            if(!roomId) { container.innerHTML = '<p class="text-xs opacity-50 text-center mt-5">Vui lòng nhập mã phòng.</p>'; return; }
+            
+            container.innerHTML = '<p class="text-xs text-center mt-5"><i class="fa-solid fa-spinner fa-spin text-pink-500"></i> Đang tìm kiếm...</p>';
+            try {
+                const snap = await db.collection("messages").where("roomId", "==", roomId).get();
+                if(snap.empty) { container.innerHTML = '<p class="text-xs text-rose-500 text-center mt-5">Chưa có thư nào trong phòng này.</p>'; return; }
+                
+                container.innerHTML = `<p class="text-[10px] text-emerald-400 font-bold mb-2">Tìm thấy ${snap.docs.length} thư trong nhóm: ${roomId.toUpperCase()}</p>`;
+                snap.forEach(doc => {
+                    const item = doc.data();
+                    const url = `${window.location.origin}${window.location.pathname}?id=${doc.id}`;
+                    container.innerHTML += `
+                        <div class="p-3 bg-slate-900/50 rounded-lg border border-slate-700/50 mb-2">
+                            <div class="text-xs font-bold text-pink-400 mb-1">Gửi: ${item.recipient}</div>
+                            <a href="${url}" target="_blank" class="text-[10px] text-blue-400 hover:text-blue-300">Nhấn để xem thư này <i class="fa-solid fa-link"></i></a>
+                        </div>
+                    `;
+                });
+            } catch(e) { container.innerHTML = '<p class="text-xs text-rose-500 text-center mt-5">Lỗi truy vấn phòng.</p>'; }
+        }
+
+        function toggleNotebook() { document.getElementById("notebookModal").classList.toggle("hidden"); }
+        
+        function switchTab(tab) {
+            document.getElementById('viewTimeline').classList.toggle('hidden', tab !== 'timeline');
+            document.getElementById('viewRooms').classList.toggle('hidden', tab !== 'rooms');
+            document.getElementById('tabTimeline').className = tab === 'timeline' ? "flex-1 py-2 text-xs font-bold rounded-lg bg-pink-600 text-white transition" : "flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-300 transition";
+            document.getElementById('tabRooms').className = tab === 'rooms' ? "flex-1 py-2 text-xs font-bold rounded-lg bg-pink-600 text-white transition" : "flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-300 transition";
+        }
+
+        // TẢI ẢNH THIỆP KỸ THUẬT SỐ BẰNG HTML2CANVAS
+        function downloadDigitalCard() {
+            const element = document.getElementById('digitalCardArea');
+            
+            // Tạm thời set background cho area để ảnh xuất ra không bị trong suốt
+            const computedStyle = getComputedStyle(document.body);
+            element.style.background = computedStyle.background;
+            if (element.style.background === '' || element.style.background === 'none') {
+                element.style.backgroundColor = computedStyle.backgroundColor || "#0f172a";
+            }
+            
+            html2canvas(element, { 
+                backgroundColor: null, // Cho phép background từ element
+                scale: 2, // Tăng độ phân giải
+                useCORS: true // Hỗ trợ tải ảnh cross-origin nếu có
+            }).then(canvas => {
+                element.style.background = "transparent"; // Trả lại style cũ
+                const link = document.createElement('a');
+                link.download = `Thiep-Bi-Mat-${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
         }
 
         // --- TÍNH NĂNG PREVIEW XEM TRƯỚC ---
@@ -650,6 +933,7 @@
             
             const editId = document.getElementById("editLetterId").value;
             const payload = {
+                roomId: document.getElementById("roomIdInput").value.trim().toLowerCase(), // Hộp thư nhóm
                 mode: document.getElementById("modeInput").value,
                 theme: document.getElementById("themeInput").value,
                 font: document.getElementById("fontInput").value,
@@ -662,7 +946,8 @@
                 pin: document.getElementById("pinInput").value.trim(),
                 creatorToken: myCreatorToken,
                 isRead: false,
-                reaction: null
+                reaction: null,
+                createdAt: new Date().getTime() // Cấp độ & Sổ tay Timeline
             };
 
             if (!payload.recipient || !payload.content || !payload.pin || !payload.anniversary || !payload.hint) {
@@ -678,7 +963,6 @@
                 if (editId) {
                     await db.collection("messages").doc(editId).update(payload);
                 } else {
-                    payload.createdAt = new Date().toISOString();
                     const docRef = await db.collection("messages").add(payload);
                     docId = docRef.id;
                 }
@@ -689,11 +973,15 @@
                 document.getElementById("createForm").classList.add("hidden");
                 document.getElementById("successResult").classList.remove("hidden");
                 
+                // Lưu lại Local Storage (Dự phòng)
                 let history = JSON.parse(localStorage.getItem("letter_history")) || [];
                 if (!history.find(h => h.id === docId)) {
                     history.unshift({ id: docId, url: shareLink, time: new Date().toLocaleDateString("vi-VN") });
                     localStorage.setItem("letter_history", JSON.stringify(history.slice(0, 15)));
                 }
+
+                loadHistory(); 
+                loadUserRankingAndNotebook(); // Update Sổ tay & Xếp hạng ngay lập tức
             } catch (error) {
                 alert("Lỗi hệ thống! Kiểm tra lại Firebase Rule.");
             } finally {
@@ -724,11 +1012,11 @@
 
                         container.innerHTML += `
                             <div class="p-3 rounded-lg input-style border border-slate-700/50 flex justify-between items-center" id="hist-${id}">
-                                <div>
-                                    <div class="text-[12px] font-bold" style="color: var(--theme-color);">Đến: ${data.recipient} ${reactionHtml}</div>
+                                <div class="truncate mr-2">
+                                    <div class="text-[12px] font-bold truncate" style="color: var(--theme-color);">Đến: ${data.recipient} ${reactionHtml}</div>
                                     <div class="flex items-center mt-1"><span class="text-[9px] opacity-60">${date}</span>${statusHtml}</div>
                                 </div>
-                                <div class="flex gap-1">
+                                <div class="flex gap-1 shrink-0">
                                     <button onclick="editLetter('${id}')" class="px-2 py-1 bg-slate-800 text-amber-400 rounded hover:bg-slate-700 transition"><i class="fa-solid fa-pen"></i></button>
                                     <button onclick="deleteLetter('${id}')" class="px-2 py-1 bg-slate-800 text-rose-400 rounded hover:bg-rose-900/50 transition"><i class="fa-solid fa-trash"></i></button>
                                     <a href="${url}" target="_blank" class="px-2 py-1 bg-slate-800 text-slate-300 rounded hover:text-white transition"><i class="fa-solid fa-link"></i></a>
@@ -914,9 +1202,18 @@
             if(confirm("Bạn có chắc chắn muốn thu hồi bức thư này?")) {
                 try {
                     await db.collection("messages").doc(id).delete();
+                    
+                    // Xóa trên Local Storage
                     let history = JSON.parse(localStorage.getItem("letter_history")) || [];
                     localStorage.setItem("letter_history", JSON.stringify(history.filter(item => item.id !== id)));
-                    document.getElementById(`hist-${id}`).remove();
+                    
+                    const histEl = document.getElementById(`hist-${id}`);
+                    if(histEl) histEl.remove();
+
+                    const noteEl = document.getElementById(`note-${id}`);
+                    if(noteEl) noteEl.remove();
+
+                    loadUserRankingAndNotebook(); // Cập nhật lại điểm sau khi xóa
                 } catch(e) { alert("Lỗi khi xóa!"); }
             }
         }
@@ -927,13 +1224,14 @@
                 if (doc.exists && doc.data().creatorToken === myCreatorToken) {
                     const data = doc.data();
                     document.getElementById("editLetterId").value = id;
+                    document.getElementById("roomIdInput").value = data.roomId || ""; // Cập nhật mã phòng
                     document.getElementById("themeInput").value = data.theme;
                     document.getElementById("modeInput").value = data.mode || 'dark';
                     document.getElementById("fontInput").value = data.font || 'font-serif-custom';
                     document.getElementById("recipientInput").value = data.recipient;
                     document.getElementById("messageInput").value = data.content;
                     document.getElementById("imageUrlInput").value = data.imageUrl || "";
-                    document.getElementById("musicUrlInput").value = data.musicUrl || ""; // Cập nhật load link nhạc
+                    document.getElementById("musicUrlInput").value = data.musicUrl || ""; 
                     document.getElementById("hintInput").value = data.hint;
                     document.getElementById("anniversaryInput").value = data.anniversary;
                     document.getElementById("pinInput").value = data.pin;
