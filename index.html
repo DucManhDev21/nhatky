@@ -434,7 +434,6 @@
 
         <!-- MÀN HÌNH KHÓA VÀ XEM THƯ (GIỮ NGUYÊN) -->
         <div id="lockScreen" class="glass-panel rounded-3xl p-8 shadow-2xl hidden relative">
-            <!-- (Giữ nguyên phần lockScreen cũ để không cắt bớt) -->
             <div id="lockoutOverlay" class="absolute inset-0 bg-slate-950/90 rounded-3xl z-20 flex flex-col items-center justify-center hidden backdrop-blur-sm">
                 <i class="fa-solid fa-user-lock text-4xl text-rose-500 mb-3 animate-bounce"></i>
                 <h3 class="text-rose-400 font-bold text-lg">Đã khóa tạm thời!</h3>
@@ -648,7 +647,7 @@
                     type: type, // 'mail' hoặc 'chat'
                     createdAt: Date.now(),
                     creator: myUserId
-                });
+                }, { merge: true }); // Sửa lỗi ghi đè, an toàn dữ liệu
                 
                 alert(`Đã tạo ${type === 'mail' ? 'Nhóm Gửi Thư' : 'Nhóm Chat'} thành công!\nID: ${newRoomId}`);
                 saveRoomToHistory(newRoomId, type);
@@ -668,7 +667,7 @@
                     enterRoom(roomId);
                 } else {
                     alert("Nhóm không tồn tại! Đang tạo thành Nhóm Hỗn Hợp...");
-                    await db.collection("rooms").doc(roomId).set({ id: roomId, type: 'mixed', createdAt: Date.now() });
+                    await db.collection("rooms").doc(roomId).set({ id: roomId, type: 'mixed', createdAt: Date.now() }, { merge: true }); // Cập nhật sửa lỗi trùng
                     saveRoomToHistory(roomId, 'mixed');
                     enterRoom(roomId);
                 }
@@ -815,18 +814,18 @@
             
             try {
                 if(type === 'points') {
-                    // MOCK Xếp hạng Điểm (Vì Firestore free không hỗ trợ Group By tốt, ta lấy limit 50 message mới nhất để thống kê tạm)
+                    // Xếp hạng Điểm được cập nhật hiển thị User ID
                     const snap = await db.collection("messages").limit(100).get();
                     let scores = {};
                     snap.forEach(doc => {
-                        const token = doc.data().creatorToken || 'Unknown';
-                        scores[token] = (scores[token] || 0) + 10; 
+                        const uid = doc.data().userId || 'Người ẩn danh';
+                        scores[uid] = (scores[uid] || 0) + 10; 
                     });
                     
                     let sorted = Object.entries(scores).sort((a,b) => b[1] - a[1]).slice(0, 10);
                     container.innerHTML = sorted.map((s, i) => `
                         <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                            <span class="text-xs font-bold ${i===0?'text-amber-400':(i===1?'text-slate-300':'text-amber-600')}">#${i+1} Người ẩn danh</span>
+                            <span class="text-xs font-bold ${i===0?'text-amber-400':(i===1?'text-slate-300':'text-amber-600')}">#${i+1} ${s[0]}</span>
                             <span class="text-xs text-pink-400 font-bold">${s[1]} điểm</span>
                         </div>
                     `).join('');
@@ -1149,6 +1148,7 @@
                 anniversary: document.getElementById("anniversaryInput").value.trim(),
                 pin: document.getElementById("pinInput").value.trim(),
                 creatorToken: myCreatorToken,
+                userId: myUserId, // Bổ sung để hiển thị User ID trong Bảng xếp hạng
                 isRead: false,
                 reaction: null,
                 createdAt: new Date().getTime() 
