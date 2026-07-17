@@ -108,9 +108,9 @@
         }
         .anim-unlock { animation: unlock-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
-        /* CHAT BUBBLES CSS */
-        .chat-bubble-mine { background: var(--theme-color); color: white; border-bottom-right-radius: 4px; }
-        .chat-bubble-other { background: rgba(255,255,255,0.1); border-bottom-left-radius: 4px; }
+        /* CHAT BUBBLES CSS - Đã thêm tính năng tự ngắt dòng (word-wrap) */
+        .chat-bubble-mine { background: var(--theme-color); color: white; border-bottom-right-radius: 4px; word-wrap: break-word; white-space: pre-wrap; }
+        .chat-bubble-other { background: rgba(255,255,255,0.1); border-bottom-left-radius: 4px; word-wrap: break-word; white-space: pre-wrap; }
         .online-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #10b981; display: inline-block; box-shadow: 0 0 5px #10b981; }
         .offline-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #64748b; display: inline-block; }
 
@@ -155,7 +155,8 @@
 
     <!-- GIAO DIỆN SỔ TAY & TÌM KIẾM -->
     <div id="notebookModal" class="fixed inset-0 bg-slate-950/95 z-50 hidden flex flex-col items-center p-6 pt-10 backdrop-blur-md">
-        <div class="w-full max-w-md w-full glass-panel rounded-2xl p-6 relative flex flex-col h-[85vh]">
+        <!-- Đã sửa h-[85vh] thành h-full để chống tràn khung -->
+        <div class="w-full max-w-md w-full glass-panel rounded-2xl p-6 relative flex flex-col h-full">
             <button onclick="toggleNotebook()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl z-50">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -234,7 +235,8 @@
 
                     <!-- Room Tab: Chat -->
                     <div id="roomInnerChat" class="flex-1 flex flex-col hidden min-h-0 bg-slate-900/50 rounded-xl border border-slate-700/50 overflow-hidden">
-                        <div id="chatMessages" class="flex-1 overflow-y-auto p-3 space-y-3">
+                        <!-- Đã thêm pb-20 (padding-bottom) để chống che khuất chat form -->
+                        <div id="chatMessages" class="flex-1 overflow-y-auto p-3 pb-20 space-y-3">
                             <!-- Tin nhắn -->
                         </div>
                         <div class="p-2 border-t border-slate-700 flex gap-2 bg-slate-900">
@@ -761,7 +763,7 @@
                 });
         }
 
-        // Lắng nghe Chat Realtime
+        /// Lắng nghe Chat Realtime - Đã tích hợp tính năng hiển thị Tên ID người dùng
         function listenToChat(roomId) {
             if(chatUnsubscribe) chatUnsubscribe();
             const container = document.getElementById("chatMessages");
@@ -777,9 +779,11 @@
                         const msg = doc.data();
                         const isMine = msg.senderId === myUserId;
                         container.innerHTML += `
-                            <div class="flex flex-col ${isMine ? 'items-end' : 'items-start'} mb-2">
-                                <span class="text-[8px] text-slate-500 mb-0.5">${msg.senderId}</span>
-                                <div class="px-3 py-1.5 text-xs max-w-[80%] ${isMine ? 'chat-bubble-mine' : 'chat-bubble-other'}">
+                            <div class="flex flex-col ${isMine ? 'items-end' : 'items-start'} mb-3">
+                                <span class="text-[9px] font-bold ${isMine ? 'text-pink-400' : 'text-slate-400'} mb-1 flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-user"></i> ${msg.senderId}
+                                </span>
+                                <div class="px-3 py-2 text-xs max-w-[80%] ${isMine ? 'chat-bubble-mine' : 'chat-bubble-other'} shadow-md">
                                     ${msg.text}
                                 </div>
                             </div>
@@ -814,19 +818,27 @@
             
             try {
                 if(type === 'points') {
-                    // Xếp hạng Điểm được cập nhật hiển thị User ID
+                    // Xếp hạng Điểm được cập nhật hiển thị User ID chuẩn format NKSXXXXXX
                     const snap = await db.collection("messages").limit(100).get();
                     let scores = {};
                     snap.forEach(doc => {
-                        const uid = doc.data().userId || 'Người ẩn danh';
+                        let uid = doc.data().userId;
+                        
+                        // Nếu user thiếu ID hoặc ID không chuẩn NKS, tự động tạo ID để không bị lỗi hiển thị
+                        if (!uid || !uid.startsWith('NKS')) {
+                            uid = 'NKS' + doc.id.substring(0, 6).toUpperCase();
+                        }
+                        
                         scores[uid] = (scores[uid] || 0) + 10; 
                     });
                     
                     let sorted = Object.entries(scores).sort((a,b) => b[1] - a[1]).slice(0, 10);
                     container.innerHTML = sorted.map((s, i) => `
-                        <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                            <span class="text-xs font-bold ${i===0?'text-amber-400':(i===1?'text-slate-300':'text-amber-600')}">#${i+1} ${s[0]}</span>
-                            <span class="text-xs text-pink-400 font-bold">${s[1]} điểm</span>
+                        <div class="flex justify-between items-center p-3 bg-slate-900/50 rounded-lg border border-slate-700/50 shadow-sm">
+                            <span class="text-xs font-bold ${i===0?'text-amber-400':(i===1?'text-slate-300':(i===2?'text-amber-600':'text-pink-300'))}">
+                                #${i+1} <i class="fa-solid fa-id-badge ml-1 mr-0.5"></i> ${s[0]}
+                            </span>
+                            <span class="text-xs text-pink-400 font-bold bg-pink-500/10 px-2 py-1 rounded">${s[1]} điểm</span>
                         </div>
                     `).join('');
                 } 
@@ -876,8 +888,6 @@
         }
 
         // --- CÁC HÀM CŨ GIỮ NGUYÊN HOẠT ĐỘNG ---
-        // (Voice, Khởi tạo trang, Lưu thư, Giải mã thư... toàn bộ giữ nguyên để code chạy đúng)
-
         let recognition = null;
         let isDictating = false;
         function toggleDictation() {
