@@ -624,6 +624,13 @@
                 <p id="reactionFeedback" class="text-[10px] text-emerald-500 mt-2 hidden font-bold">Đã gửi cảm xúc thành công!</p>
             </div>
 
+            <div id="replyBox" class="hidden mb-6 relative z-10">
+                <p class="text-[10px] font-bold opacity-60 uppercase mb-2 text-center">Gửi lời nhắn lại cho người gửi</p>
+                <textarea id="replyInput" rows="2" maxlength="500" placeholder="Viết vài lời đáp lại..." class="w-full input-style rounded-xl px-4 py-2.5 text-xs outline-none resize-none"></textarea>
+                <button id="btnReply" onclick="sendReply()" class="mt-2 w-full py-2.5 bg-gradient-to-r from-pink-600 to-purple-600 text-white text-xs font-bold rounded-xl shadow-lg active:scale-95 transition"><i class="fa-solid fa-paper-plane"></i> Gửi lời nhắn</button>
+                <p id="replyFeedback" class="hidden text-[10px] text-emerald-500 mt-2 text-center font-bold">Đã gửi lời nhắn cho người gửi! 💌</p>
+            </div>
+
             <div id="createOwnLetterBox" class="space-y-3 relative z-10">
                 <a href="/" class="w-full py-3 input-style hover:brightness-110 active:scale-95 text-xs font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2">
                     <i class="fa-solid fa-pen-nib"></i> Tạo thư khóa PIN của riêng bạn
@@ -1156,6 +1163,7 @@
                             <span class="text-[9px] opacity-70">${date}</span>
                         </div>
                         <p class="text-[10px] opacity-80 mb-2 truncate text-slate-300">${item.content}</p>
+                        ${(item.replies || []).map(r => `<div class="text-[10px] mb-2 p-2 rounded-lg bg-pink-500/10 border border-pink-500/20 text-pink-200">💬 ${esc(r.text)}</div>`).join('')}
                         <div class="flex justify-between items-center text-[10px]">
                             ${statusHtml}
                             <div class="flex gap-1">
@@ -1296,8 +1304,8 @@
 
         function checkStep1() {
             const errorMsg = document.getElementById("errorMsg1");
-            const readerAnniversary = document.getElementById("readerAnniversaryInput").value.trim().toLowerCase();
-            const expectedAnniversary = (loadedLetterData.anniversary || "").toLowerCase();
+            const readerAnniversary = normAns(document.getElementById("readerAnniversaryInput").value);
+            const expectedAnniversary = normAns(loadedLetterData.anniversary);
             
             if (readerAnniversary === expectedAnniversary) {
                 document.getElementById("step1Container").classList.add("hidden");
@@ -1349,6 +1357,7 @@
                 
                 triggerEffects(loadedLetterData.theme || 'love');
                 renderExtras(loadedLetterData);
+                $('replyBox').classList.remove('hidden');
         }
 
         function handleFailedAttempt() {
@@ -1478,7 +1487,7 @@
         // --- Phong bì 3D ---
         let sealWaiting = false, pendingReveal = null;
         function openWithEnvelope(cb) {
-            pendingReveal = cb; sealWaiting = true;
+            pendingReveal = cb; sealWaiting = true; $('lockScreen').classList.add('hidden');
             const st = $('envelopeStage'); st.style.opacity = 1; st.classList.remove('hidden'); st.classList.add('flex');
             $('env').className = 'env env-wobble'; $('envHint').innerText = '📳 Lắc điện thoại hoặc chạm để xé niêm phong';
         }
@@ -1507,16 +1516,23 @@
             if (inMailRoom) return rouletteDraw();
             heartRain();
         }
+        let motionBound = false, motionRequesting = false;
+        function bindMotion() { if (!motionBound) { window.addEventListener('devicemotion', handleMotion); motionBound = true; } $('btnShake').classList.add('hidden'); }
         function initShake() {
             if (typeof DeviceMotionEvent === 'undefined') return;
-            if (typeof DeviceMotionEvent.requestPermission === 'function') $('btnShake').classList.remove('hidden'); // iOS 13+ cần cấp quyền
-            else window.addEventListener('devicemotion', handleMotion);
+            if (typeof DeviceMotionEvent.requestPermission !== 'function') { bindMotion(); return; } // Android / trình duyệt không cần cấp quyền
+            // iOS 13+: xin quyền ngay ở lần chạm đầu tiên trên trang (không cần bấm nút riêng)
+            const auto = () => { document.removeEventListener('click', auto, true); document.removeEventListener('touchend', auto, true); enableShake(true); };
+            document.addEventListener('click', auto, true); document.addEventListener('touchend', auto, true);
         }
-        async function enableShake() {
+        async function enableShake(silent) {
+            if (motionBound || motionRequesting) return;
+            motionRequesting = true;
             try {
-                if ((await DeviceMotionEvent.requestPermission()) !== 'granted') { alert('Bạn chưa cấp quyền cảm biến chuyển động.'); return; }
-                window.addEventListener('devicemotion', handleMotion); $('btnShake').classList.add('hidden');
-            } catch (e) { alert('Không bật được cảm biến lắc trên thiết bị này.'); }
+                if ((await DeviceMotionEvent.requestPermission()) === 'granted') bindMotion();
+                else { $('btnShake').classList.remove('hidden'); if (!silent) alert('Bạn chưa cấp quyền cảm biến chuyển động.'); }
+            } catch (e) { $('btnShake').classList.remove('hidden'); }
+            motionRequesting = false;
         }
         function heartRain() {
             try {
@@ -1622,6 +1638,25 @@
         async function reactChat(id, emoji, has) {
             const f = firebase.firestore.FieldValue;
             try { await db.collection("chats").doc(id).update(new firebase.firestore.FieldPath('reactions', emoji), has ? f.arrayRemove(myUserId) : f.arrayUnion(myUserId)); } catch (e) { alert('Không thả được cảm xúc.'); }
+        }
+
+        function normAns(t) {
+            t = String(t || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            const m = t.match(/^(\d{1,2})\s*[\/\-.]\s*(\d{1,2})(?:\s*[\/\-.]\s*(\d{2,4}))?$/);
+            if (!m) return t;
+            let y = m[3]; if (y && y.length === 2) y = '20' + y;
+            return `${+m[1]}/${+m[2]}` + (y ? `/${+y}` : ''); // 06/07, 6/07, 6-7 ... đều thành 6/7
+        }
+        async function sendReply() {
+            const text = $('replyInput').value.trim();
+            if (!text || !secretLetterId) return;
+            const btn = $('btnReply'); btn.disabled = true;
+            try {
+                await db.collection("messages").doc(secretLetterId).update({ replies: firebase.firestore.FieldValue.arrayUnion({ text: text.slice(0, 500), at: Date.now() }) });
+                $('replyInput').value = '';
+                const fb = $('replyFeedback'); fb.classList.remove('hidden'); setTimeout(() => fb.classList.add('hidden'), 3000);
+            } catch (e) { alert('Không gửi được lời nhắn, hãy thử lại!'); }
+            btn.disabled = false;
         }
 
         window.onload = () => { initPage(); initShake(); initStickers(); setPinLength(); };
