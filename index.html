@@ -155,6 +155,37 @@
         .theme-gothic .keypad-btn:active { box-shadow: 0 0 0 #301934; transform: translate(4px, 4px); }
         .mic-active { animation: pulse-red 1.5s infinite; color: #ef4444 !important; }
         @keyframes pulse-red { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    
+        /* ===== NÂNG CẤP: Phong bì 3D, hẹn giờ, voice, sticker, reactions ===== */
+        .env-scene { perspective: 900px; }
+        .env { position: relative; width: 260px; height: 170px; transform-style: preserve-3d; }
+        .env-back { position: absolute; inset: 0; border-radius: 8px; background: var(--theme-color); filter: brightness(.65); }
+        .env-paper { position: absolute; left: 14px; right: 14px; top: 8px; height: 150px; z-index: 2; border-radius: 6px; background: #fffdf5; display: flex; align-items: center; justify-content: center; font-size: 44px; box-shadow: 0 2px 10px rgba(0,0,0,.35); transition: transform 1s cubic-bezier(.3,1.25,.4,1) .7s; }
+        .env-front { position: absolute; inset: 0; z-index: 3; border-radius: 8px; background: var(--theme-color); filter: brightness(.88); clip-path: polygon(0 0, 50% 55%, 100% 0, 100% 100%, 0 100%); }
+        .env-flap { position: absolute; left: 0; right: 0; top: 0; height: 60%; z-index: 4; background: var(--theme-color); clip-path: polygon(0 0, 100% 0, 50% 100%); transform-origin: top center; }
+        .env-seal { position: absolute; left: 50%; top: 46%; z-index: 5; font-size: 32px; transform: translate(-50%, -50%); transition: all .35s; filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
+        .env.open .env-flap { animation: flapOpen .7s forwards; }
+        .env.open .env-paper { transform: translateY(-125px) scale(1.06); }
+        .env.open .env-seal { opacity: 0; transform: translate(-50%, -50%) scale(2) rotate(30deg); }
+        .env-wobble { animation: wob 1.1s ease-in-out infinite; }
+        @keyframes flapOpen { 0% { transform: rotateX(0); z-index: 4; } 49% { z-index: 4; } 50% { transform: rotateX(-90deg); z-index: 1; } 100% { transform: rotateX(-180deg); z-index: 1; } }
+        @keyframes wob { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg) scale(1.03); } }
+        .cd-box { min-width: 58px; padding: 8px 4px; border-radius: 12px; background: rgba(255,255,255,.08); border: 1px solid var(--theme-color); text-align: center; }
+        .cd-box b { display: block; font: 700 1.6rem monospace; color: #fff; }
+        .cd-box small { font-size: 9px; opacity: .7; text-transform: uppercase; color: #fff; }
+        .sticker { display: inline-block; animation: stk 2s ease-in-out infinite; }
+        @keyframes stk { 50% { transform: translateY(-6px) rotate(8deg); } }
+        .wave i { display: block; width: 3px; height: 6px; border-radius: 2px; background: var(--theme-color); }
+        .wave.wave-on i { animation: wv .8s ease-in-out infinite; }
+        .wave.wave-on i:nth-child(2n) { animation-delay: .2s; } .wave.wave-on i:nth-child(3n) { animation-delay: .4s; }
+        @keyframes wv { 50% { height: 22px; } }
+        .gift-shake { animation: gs .45s infinite; } .gift-pop { animation: unlock-pop .6s; }
+        @keyframes gs { 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+        .rx-chip { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: rgba(255,255,255,.1); border: 1px solid transparent; }
+        .rx-mine { border-color: var(--theme-color); background: rgba(217,70,239,.22); }
+        .rx-add { font-size: 11px; opacity: .6; padding: 1px 6px; }
+        .rx-bar { display: flex; gap: 8px; padding: 4px 10px; margin-top: 4px; border-radius: 999px; background: rgba(15,23,42,.95); }
+        .rx-bar button { font-size: 18px; } .rx-bar.hidden { display: none; }
     </style>
 </head>
 <body id="mainBody" class="flex flex-col items-center p-4 relative">
@@ -243,6 +274,7 @@
                                 <i class="fa-solid fa-plus"></i> Viết thư vào nhóm này
                             </button>
                         </div>
+                        <div class="text-center mb-3"><button onclick="rouletteDraw()" class="text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 px-4 py-2 rounded-full border border-amber-500/30 transition">🎁 Bốc thăm thư bí mật (hoặc lắc máy)</button></div>
                         <div id="roomMailContainer"></div>
                     </div>
 
@@ -277,6 +309,22 @@
     </div>
 
     <!-- CÁC THÀNH PHẦN KHÁC GIỮ NGUYÊN -->
+    <!-- PHONG BÌ 3D -->
+    <div id="envelopeStage" onclick="tearSeal()" class="fixed inset-0 z-[60] hidden flex-col items-center justify-center bg-slate-950/90 backdrop-blur-md" style="transition: opacity .5s;">
+        <div class="env-scene"><div id="env" class="env"><div class="env-back"></div><div class="env-paper">💌</div><div class="env-front"></div><div class="env-flap"></div><div class="env-seal">💖</div></div></div>
+        <p id="envHint" class="mt-24 text-sm text-white/90 font-bold animate-pulse text-center px-6">📳 Lắc điện thoại hoặc chạm để xé niêm phong</p>
+    </div>
+
+    <!-- BỐC THĂM THƯ (BLIND BOX) -->
+    <div id="rouletteModal" class="fixed inset-0 z-[65] hidden flex-col items-center justify-center bg-slate-950/90 backdrop-blur-md p-6 text-center">
+        <div id="rouletteGift" class="text-7xl">🎁</div>
+        <p id="rouletteText" class="text-white font-bold mt-4 text-sm"></p>
+        <a id="rouletteOpen" target="_blank" class="hidden mt-4 px-6 py-2.5 rounded-full bg-gradient-to-r from-pink-600 to-purple-600 text-white text-xs font-bold shadow-lg">Mở thư này <i class="fa-solid fa-arrow-right ml-1"></i></a>
+        <button onclick="closeRoulette()" class="mt-4 text-xs text-slate-300 underline">Đóng</button>
+    </div>
+
+    <button id="btnShake" onclick="enableShake()" class="fixed bottom-6 left-6 z-[70] hidden bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-xl border border-pink-500/40">📳 Bật cảm biến lắc</button>
+
     <div id="loadingScreen" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 transition-opacity duration-300">
         <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-pink-500 mb-4"></div>
         <p class="text-slate-400 text-sm animate-pulse">Đang kết nối thư viện bảo mật...</p>
@@ -399,9 +447,29 @@
                     <input type="text" id="musicUrlInput" placeholder="Ví dụ: https://youtu.be/..." class="w-full input-style focus:border-pink-500 focus:ring-1 focus:ring-pink-500 rounded-xl px-4 py-2.5 text-xs outline-none transition">
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-3 p-3 rounded-xl border border-slate-700/60">
                     <div>
-                        <label class="block text-[10px] font-bold opacity-70 uppercase tracking-wider mb-1.5">Gợi ý bảo mật</label>
+                        <label class="block text-[11px] font-bold opacity-70 uppercase tracking-wider mb-1.5"><i class="fa-solid fa-hourglass-half"></i> Hẹn giờ mở thư (Tùy chọn)</label>
+                        <input type="datetime-local" id="unlockAtInput" class="w-full input-style rounded-xl px-4 py-2.5 text-xs outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold opacity-70 uppercase tracking-wider mb-1.5"><i class="fa-solid fa-microphone-lines"></i> Giọng nói (tối đa 30 giây)</label>
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="btnRecord" onclick="toggleRecord()" class="text-[11px] bg-slate-800 text-pink-400 px-3 py-1.5 rounded-lg border border-slate-700"><i class="fa-solid fa-microphone"></i> Thu âm</button>
+                            <button type="button" id="btnDeleteVoice" onclick="deleteVoice()" class="hidden text-[11px] bg-slate-800 text-rose-400 px-3 py-1.5 rounded-lg border border-slate-700"><i class="fa-solid fa-trash"></i></button>
+                            <span id="voiceStatus" class="text-[10px] opacity-70"></span>
+                        </div>
+                        <audio id="voicePreview" controls class="hidden w-full mt-2 h-9"></audio>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold opacity-70 uppercase tracking-wider mb-1.5">Sticker & GIF</label>
+                        <div id="stickerPalette" class="flex flex-wrap gap-2 mb-2"></div>
+                        <div id="selectedStickers" class="flex flex-wrap gap-1 mb-2 min-h-[28px]"></div>
+                        <input type="text" id="gifUrlInput" placeholder="Link GIF (https://...) — tùy chọn" class="w-full input-style rounded-xl px-4 py-2 text-xs outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3"> <div> <label class="block text-[10px] font-bold opacity-70 uppercase tracking-wider mb-1.5">Gợi ý bảo mật</label>
                         <input type="text" id="hintInput" placeholder="Ví dụ: Ngày quen?..." class="w-full input-style rounded-xl px-3 py-2 text-xs outline-none">
                     </div>
                     <div>
@@ -411,7 +479,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold opacity-70 uppercase tracking-wider mb-1.5">Mã PIN (6 số)</label>
+                    <label class="block text-[11px] font-bold opacity-70 uppercase tracking-wider mb-1.5">Mã PIN <select id="pinLengthInput" onchange="setPinLength()" class="input-style rounded px-2 py-0.5 ml-2 text-[10px] normal-case"><option value="6">6 số</option><option value="4">4 số</option></select></label>
                     <input type="password" id="pinInput" placeholder="Ví dụ: 121204" maxlength="6" pattern="[0-9]*" inputmode="numeric" class="w-full input-style rounded-xl px-4 py-2.5 text-xs tracking-widest outline-none text-center font-bold">
                 </div>
 
@@ -451,6 +519,15 @@
 
         <!-- MÀN HÌNH KHÓA VÀ XEM THƯ -->
         <div id="lockScreen" class="glass-panel rounded-3xl p-8 shadow-2xl hidden relative">
+            <div id="timeLockOverlay" class="absolute inset-0 bg-slate-950/95 rounded-3xl z-30 flex flex-col items-center justify-center hidden backdrop-blur-sm p-4 text-center">
+                <i class="fa-solid fa-hourglass-half fa-spin-pulse text-4xl mb-3" style="color: var(--theme-color);"></i>
+                <h3 class="font-bold text-lg text-white">Chưa đến giờ mở thư ⏳</h3>
+                <p class="text-xs text-slate-300 mt-1">Thư sẽ mở khóa lúc <b id="timeLockDate"></b></p>
+                <div class="flex gap-2 mt-4">
+                    <div class="cd-box"><b id="cdD">00</b><small>ngày</small></div><div class="cd-box"><b id="cdH">00</b><small>giờ</small></div>
+                    <div class="cd-box"><b id="cdM">00</b><small>phút</small></div><div class="cd-box animate-pulse"><b id="cdS">00</b><small>giây</small></div>
+                </div>
+            </div>
             <div id="lockoutOverlay" class="absolute inset-0 bg-slate-950/90 rounded-3xl z-20 flex flex-col items-center justify-center hidden backdrop-blur-sm">
                 <i class="fa-solid fa-user-lock text-4xl text-rose-500 mb-3 animate-bounce"></i>
                 <h3 class="text-rose-400 font-bold text-lg">Đã khóa tạm thời!</h3>
@@ -474,7 +551,7 @@
             </div>
 
             <div id="step2Container" class="hidden animate-fade-in">
-                <label class="block text-[11px] font-bold opacity-70 uppercase tracking-wider mb-3 text-center">Bước 2: Mã PIN 6 Số</label>
+                <label id="pinLabel" class="block text-[11px] font-bold opacity-70 uppercase tracking-wider mb-3 text-center">Bước 2: Mã PIN 6 Số</label>
                 <div class="flex justify-center gap-3 mb-6">
                     <span class="pin-dot w-4 h-4 rounded-full border border-slate-500 bg-transparent"></span>
                     <span class="pin-dot w-4 h-4 rounded-full border border-slate-500 bg-transparent"></span>
@@ -518,6 +595,13 @@
                 <div class="input-style p-5 rounded-2xl mb-4 relative z-10 shadow-inner letter-container">
                     <img id="letterImage" src="" alt="Ảnh đính kèm" class="w-full rounded-xl mb-4 hidden border border-slate-500/30">
                     <p id="letterContent" class="text-sm leading-relaxed font-serif-custom whitespace-pre-line opacity-90 relative z-10">...</p>
+                    <div id="voiceBox" class="hidden mt-4 flex items-center gap-3 p-3 rounded-xl border border-slate-500/30 relative z-10">
+                        <button onclick="toggleVoice()" class="w-10 h-10 rounded-full text-white flex items-center justify-center shrink-0" style="background: var(--theme-color);"><i id="voiceBtnIcon" class="fa-solid fa-play"></i></button>
+                        <div id="voiceWave" class="wave flex items-end gap-0.5 h-6"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                        <span class="text-[10px] opacity-70">Giọng nói của người gửi</span>
+                    </div>
+                    <div id="letterStickers" class="flex flex-wrap gap-2 mt-4 text-4xl relative z-10"></div>
+                    <img id="letterGif" src="" alt="GIF" class="hidden w-full rounded-xl mt-4 relative z-10">
                     
                     <div id="musicPlayerContainer" class="hidden" style="position: fixed; top: -9999px; left: -9999px; opacity: 0; pointer-events: none;">
                         <iframe id="musicPlayer" width="300" height="300" frameborder="0" allow="autoplay; encrypted-media"></iframe>
@@ -787,31 +871,17 @@
         // LẮNG NGHE CHAT ĐÃ FIX UI (Bong bóng chat to hơn, chữ lớn, fix tràn chữ)
         function listenToChat(roomId) {
             if(chatUnsubscribe) chatUnsubscribe();
-            const container = document.getElementById("chatMessages");
-            container.innerHTML = '';
+            const container = document.getElementById("chatMessages"); container.innerHTML = ''; delete container.dataset.init;
             
             chatUnsubscribe = db.collection("chats")
                 .where("roomId", "==", roomId)
                 .orderBy("timestamp", "asc")
                 .limitToLast(50)
                 .onSnapshot(snapshot => {
-                    container.innerHTML = '';
-                    snapshot.forEach(doc => {
-                        const msg = doc.data();
-                        const isMine = msg.senderId === myUserId;
-                        
-                        container.innerHTML += `
-                            <div class="flex flex-col ${isMine ? 'items-end' : 'items-start'} mb-4">
-                                <span class="text-[10px] font-bold ${isMine ? 'text-pink-400' : 'text-slate-400'} mb-1 flex items-center gap-1 opacity-80 pl-1 pr-1">
-                                    <i class="fa-solid fa-circle-user"></i> ${msg.senderId}
-                                </span>
-                                <div class="text-sm max-w-[85%] ${isMine ? 'chat-bubble-mine shadow-pink-500/20' : 'chat-bubble-other border border-slate-700/50'} shadow-md leading-relaxed">
-                                    ${msg.text}
-                                </div>
-                            </div>
-                        `;
-                    });
-                    setTimeout(() => { container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' }); }, 100);
+                    const stick = !container.dataset.init || container.scrollHeight - container.scrollTop - container.clientHeight < 140;
+                    container.dataset.init = '1';
+                    container.innerHTML = snapshot.docs.map(renderChatMsg).join('');
+                    if (stick) setTimeout(() => { container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' }); }, 100);
                 });
         }
 
@@ -974,7 +1044,7 @@
                         document.getElementById("readerHintLabel").innerText = loadedLetterData.hint ? `${loadedLetterData.hint}` : "Kỷ niệm";
                         hideLoading();
                         document.getElementById("lockScreen").classList.remove("hidden");
-                        checkLockoutState();
+                        checkLockoutState(); setupLockUI();
                     } else {
                         alert("Thư bí mật này không tồn tại hoặc đã bị người gửi thu hồi!");
                         window.location.href = window.location.origin;
@@ -1144,6 +1214,7 @@
             document.getElementById("previewHeader").classList.remove("hidden");
             document.getElementById("reactionContainer").classList.add("hidden");
             document.getElementById("createOwnLetterBox").classList.add("hidden");
+            renderExtras({ voiceNote: recordedVoice, stickers: selectedStickers, gifUrl: $("gifUrlInput").value.trim() });
         }
 
         function closePreview() {
@@ -1175,6 +1246,11 @@
                 hint: document.getElementById("hintInput").value.trim(),
                 anniversary: document.getElementById("anniversaryInput").value.trim(),
                 pin: document.getElementById("pinInput").value.trim(),
+                pinLength: parseInt($('pinLengthInput').value, 10) || 6,
+                unlockAt: $('unlockAtInput').value ? new Date($('unlockAtInput').value).getTime() : 0,
+                voiceNote: recordedVoice || '',
+                stickers: selectedStickers.slice(),
+                gifUrl: /^https?:\/\//.test($('gifUrlInput').value.trim()) ? $('gifUrlInput').value.trim() : '',
                 creatorToken: myCreatorToken,
                 userId: myUserId, 
                 isRead: false,
@@ -1182,10 +1258,12 @@
                 createdAt: new Date().getTime() 
             };
 
-            if (!payload.recipient || !payload.content || !payload.pin || !payload.anniversary || !payload.hint) {
+            if (!payload.recipient || !payload.content || !payload.pin || (!!payload.anniversary !== !!payload.hint)) {
                 alert("Vui lòng điền đủ các trường bắt buộc!"); return;
             }
-            if (payload.pin.length !== 6 || isNaN(payload.pin)) { alert("Mã PIN phải đúng 6 số!"); return; }
+            if (payload.pin.length !== payload.pinLength || !/^\d+$/.test(payload.pin)) { alert(`Mã PIN phải đúng ${payload.pinLength} số!`); return; }
+            if (rec && rec.state === "recording") { alert("Hãy dừng thu âm trước khi gửi!"); return; }
+            if (payload.voiceNote.length > 900000) { alert("Đoạn ghi âm quá dài, hãy thu lại ngắn hơn!"); return; }
 
             btnSubmit.disabled = true;
             btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
@@ -1224,7 +1302,7 @@
             if (readerAnniversary === expectedAnniversary) {
                 document.getElementById("step1Container").classList.add("hidden");
                 document.getElementById("step2Container").classList.remove("hidden");
-                document.getElementById("lockSubtitle").innerText = "Bước 2: Nhập mã PIN 6 số";
+                document.getElementById("lockSubtitle").innerText = `Bước 2: Nhập mã PIN ${pinLen()} số`;
                 errorMsg.innerText = "";
             } else {
                 errorMsg.innerText = handleFailedAttempt();
@@ -1236,7 +1314,14 @@
 
             if (currentPinInput === loadedLetterData.pin) {
                 localStorage.removeItem(`attempts_${secretLetterId}`);
-                
+                openWithEnvelope(revealLetter);
+            } else {
+                errorMsg.innerText = handleFailedAttempt();
+                clearPin();
+            }
+        }
+
+        function revealLetter() {
                 if (!loadedLetterData.isRead) {
                     db.collection("messages").doc(secretLetterId).update({ isRead: true, readAt: new Date().toISOString() });
                 }
@@ -1263,10 +1348,7 @@
                 document.getElementById("createOwnLetterBox").classList.remove("hidden");
                 
                 triggerEffects(loadedLetterData.theme || 'love');
-            } else {
-                errorMsg.innerText = handleFailedAttempt();
-                clearPin();
-            }
+                renderExtras(loadedLetterData);
         }
 
         function handleFailedAttempt() {
@@ -1307,9 +1389,10 @@
         }
 
         function pressKey(num) {
-            if (currentPinInput.length < 6) {
+            if (sealWaiting || (loadedLetterData && (loadedLetterData.unlockAt || 0) > Date.now())) return;
+            if (currentPinInput.length < pinLen()) {
                 currentPinInput += num; updatePinDots();
-                if (currentPinInput.length === 6) validatePin();
+                if (currentPinInput.length === pinLen()) validatePin();
             }
         }
         function deleteLast() { if (currentPinInput.length > 0) { currentPinInput = currentPinInput.slice(0, -1); updatePinDots(); document.getElementById("errorMsg2").innerText = ""; } }
@@ -1354,7 +1437,194 @@
         }
         function resetCreator() { window.location.reload(); }
 
-        window.onload = initPage;
+        
+        // ================= NÂNG CẤP =================
+        const $ = id => document.getElementById(id);
+        const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const pinLen = () => (loadedLetterData && loadedLetterData.pinLength) || 6;
+
+        // --- Hẹn giờ mở thư ---
+        let timeLockInterval = null;
+        function setupLockUI() {
+            const L = pinLen();
+            document.querySelectorAll('.pin-dot').forEach((d, i) => d.classList.toggle('hidden', i >= L));
+            $('pinLabel').innerText = `Bước 2: Mã PIN ${L} Số`;
+            if (!loadedLetterData.anniversary) { // thư không có câu hỏi gợi ý -> vào thẳng bước PIN
+                $('step1Container').classList.add('hidden'); $('step2Container').classList.remove('hidden');
+                $('lockSubtitle').innerText = `Nhập mã PIN ${L} số`;
+            }
+            checkTimeLock();
+        }
+        function checkTimeLock() {
+            const t = loadedLetterData.unlockAt || 0;
+            if (t <= Date.now()) return;
+            $('timeLockOverlay').classList.remove('hidden');
+            $('timeLockDate').innerText = new Date(t).toLocaleString('vi-VN');
+            const two = n => String(n).padStart(2, '0');
+            const tick = () => {
+                const r = t - Date.now();
+                if (r <= 0) { clearInterval(timeLockInterval); $('timeLockOverlay').classList.add('hidden'); try { confetti({ particleCount: 90, spread: 90 }); } catch (e) {} return; }
+                $('cdD').innerText = two(Math.floor(r / 864e5)); $('cdH').innerText = two(Math.floor(r % 864e5 / 36e5));
+                $('cdM').innerText = two(Math.floor(r % 36e5 / 6e4)); $('cdS').innerText = two(Math.floor(r % 6e4 / 1e3));
+            };
+            tick(); timeLockInterval = setInterval(tick, 1000);
+        }
+        function setPinLength() {
+            const L = $('pinLengthInput').value;
+            const inp = $('pinInput'); inp.maxLength = L; inp.value = inp.value.slice(0, L);
+            inp.placeholder = L === '4' ? 'Ví dụ: 1204' : 'Ví dụ: 121204';
+        }
+
+        // --- Phong bì 3D ---
+        let sealWaiting = false, pendingReveal = null;
+        function openWithEnvelope(cb) {
+            pendingReveal = cb; sealWaiting = true;
+            const st = $('envelopeStage'); st.style.opacity = 1; st.classList.remove('hidden'); st.classList.add('flex');
+            $('env').className = 'env env-wobble'; $('envHint').innerText = '📳 Lắc điện thoại hoặc chạm để xé niêm phong';
+        }
+        function tearSeal() {
+            if (!sealWaiting) return;
+            sealWaiting = false;
+            $('env').className = 'env open'; $('envHint').innerText = '✨';
+            try { navigator.vibrate && navigator.vibrate(80); } catch (e) {}
+            setTimeout(() => {
+                const st = $('envelopeStage'); st.style.opacity = 0;
+                setTimeout(() => { st.classList.add('hidden'); st.classList.remove('flex'); const cb = pendingReveal; pendingReveal = null; cb && cb(); }, 500);
+            }, 2000);
+        }
+
+        // --- Cảm biến lắc ---
+        let lastAcc = null, lastShake = 0;
+        function handleMotion(e) {
+            const a = e.accelerationIncludingGravity; if (!a) return;
+            const now = Date.now();
+            if (lastAcc && Math.abs(a.x - lastAcc.x) + Math.abs(a.y - lastAcc.y) + Math.abs(a.z - lastAcc.z) > 28 && now - lastShake > 1200) { lastShake = now; onShake(); }
+            lastAcc = { x: a.x, y: a.y, z: a.z };
+        }
+        function onShake() {
+            if (sealWaiting) return tearSeal();
+            const inMailRoom = currentActiveRoomId && !$('notebookModal').classList.contains('hidden') && !$('activeRoomScreen').classList.contains('hidden') && !$('roomInnerMail').classList.contains('hidden');
+            if (inMailRoom) return rouletteDraw();
+            heartRain();
+        }
+        function initShake() {
+            if (typeof DeviceMotionEvent === 'undefined') return;
+            if (typeof DeviceMotionEvent.requestPermission === 'function') $('btnShake').classList.remove('hidden'); // iOS 13+ cần cấp quyền
+            else window.addEventListener('devicemotion', handleMotion);
+        }
+        async function enableShake() {
+            try {
+                if ((await DeviceMotionEvent.requestPermission()) !== 'granted') { alert('Bạn chưa cấp quyền cảm biến chuyển động.'); return; }
+                window.addEventListener('devicemotion', handleMotion); $('btnShake').classList.add('hidden');
+            } catch (e) { alert('Không bật được cảm biến lắc trên thiết bị này.'); }
+        }
+        function heartRain() {
+            try {
+                const end = Date.now() + 2200;
+                const shapes = [confetti.shapeFromText({ text: '❤️', scalar: 2 }), confetti.shapeFromText({ text: '💖', scalar: 2 }), confetti.shapeFromText({ text: '🎆', scalar: 2 })];
+                (function f() {
+                    confetti({ particleCount: 4, angle: 90, spread: 140, startVelocity: 18, gravity: .7, scalar: 2, flat: true, shapes, origin: { x: Math.random(), y: 0 } });
+                    if (Date.now() < end) requestAnimationFrame(f);
+                })();
+            } catch (e) { try { confetti({ particleCount: 120, spread: 100 }); } catch (_) {} }
+        }
+
+        // --- Voice note ---
+        let rec = null, recChunks = [], recTimer = null, recordedVoice = '', voiceAudio = null;
+        async function toggleRecord() {
+            if (rec && rec.state === 'recording') { rec.stop(); return; }
+            if (!navigator.mediaDevices || !window.MediaRecorder) { alert('Trình duyệt không hỗ trợ ghi âm giọng nói.'); return; }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const mt = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm'].find(t => MediaRecorder.isTypeSupported(t));
+                rec = new MediaRecorder(stream, { ...(mt ? { mimeType: mt } : {}), audioBitsPerSecond: 24000 });
+                recChunks = []; let sec = 0;
+                rec.ondataavailable = e => e.data.size && recChunks.push(e.data);
+                rec.onstop = () => {
+                    clearInterval(recTimer); stream.getTracks().forEach(t => t.stop());
+                    const fr = new FileReader();
+                    fr.onload = () => {
+                        recordedVoice = fr.result; $('voicePreview').src = recordedVoice;
+                        $('voicePreview').classList.remove('hidden'); $('btnDeleteVoice').classList.remove('hidden');
+                        $('voiceStatus').innerText = `Đã ghi ${sec}s`;
+                    };
+                    fr.readAsDataURL(new Blob(recChunks, { type: rec.mimeType }));
+                    $('btnRecord').classList.remove('mic-active'); $('btnRecord').innerHTML = '<i class="fa-solid fa-microphone"></i> Thu lại';
+                };
+                rec.start();
+                $('btnRecord').classList.add('mic-active'); $('btnRecord').innerHTML = '<i class="fa-solid fa-stop"></i> Dừng';
+                recTimer = setInterval(() => { sec++; $('voiceStatus').innerText = `Đang ghi ${sec}s / 30s`; if (sec >= 30) rec.stop(); }, 1000);
+            } catch (e) { alert('Không truy cập được micro. Hãy cấp quyền micro cho trình duyệt.'); }
+        }
+        function deleteVoice() {
+            recordedVoice = ''; $('voicePreview').src = ''; $('voicePreview').classList.add('hidden');
+            $('btnDeleteVoice').classList.add('hidden'); $('voiceStatus').innerText = '';
+        }
+        function toggleVoice() { if (!voiceAudio) return; if (voiceAudio.paused) { voiceAudio.play(); setVoiceBtn(true); } else { voiceAudio.pause(); setVoiceBtn(false); } }
+        function setVoiceBtn(p) { $('voiceBtnIcon').className = `fa-solid ${p ? 'fa-pause' : 'fa-play'}`; $('voiceWave').classList.toggle('wave-on', p); }
+
+        // --- Sticker & GIF ---
+        const STICKERS = ['🧸', '💖', '🌸', '🐱', '🐶', '🦄', '🍓', '🌈', '⭐', '🎀', '🍰', '🥰'];
+        let selectedStickers = [];
+        function initStickers() { $('stickerPalette').innerHTML = STICKERS.map(s => `<button type="button" onclick="addSticker('${s}')" class="text-2xl hover:scale-125 transition active:scale-90">${s}</button>`).join(''); drawSelStickers(); }
+        function addSticker(s) { if (selectedStickers.length < 8) { selectedStickers.push(s); drawSelStickers(); } }
+        function drawSelStickers() {
+            $('selectedStickers').innerHTML = selectedStickers.map((s, i) => `<button type="button" onclick="selectedStickers.splice(${i},1);drawSelStickers()" class="text-xl">${s}</button>`).join('') || '<span class="text-[10px] opacity-50">Chạm sticker để chèn vào thư (chạm lại để xóa)</span>';
+        }
+        function renderExtras(d) {
+            if (voiceAudio) { voiceAudio.pause(); voiceAudio = null; }
+            if (d.voiceNote && /^data:audio\//.test(d.voiceNote)) {
+                voiceAudio = new Audio(d.voiceNote); voiceAudio.onended = () => setVoiceBtn(false); setVoiceBtn(false); $('voiceBox').classList.remove('hidden');
+            } else $('voiceBox').classList.add('hidden');
+            $('letterStickers').replaceChildren(...(d.stickers || []).slice(0, 12).map((t, i) => {
+                const e = document.createElement('span'); e.className = 'sticker'; e.textContent = t; e.style.animationDelay = (i * .2) + 's'; return e;
+            }));
+            const g = $('letterGif');
+            if (d.gifUrl && /^https?:\/\//.test(d.gifUrl)) { g.src = d.gifUrl; g.classList.remove('hidden'); } else g.classList.add('hidden');
+        }
+
+        // --- Secret Mail Roulette (Blind Box) ---
+        async function rouletteDraw() {
+            if (!currentActiveRoomId) return;
+            const m = $('rouletteModal'); if (m.classList.contains('flex')) return;
+            m.classList.remove('hidden'); m.classList.add('flex');
+            $('rouletteGift').className = 'text-7xl gift-shake'; $('rouletteGift').innerText = '🎁';
+            $('rouletteText').innerText = 'Đang bốc thăm...'; $('rouletteOpen').classList.add('hidden');
+            try {
+                const snap = await db.collection("messages").where("roomId", "==", currentActiveRoomId.toLowerCase()).get();
+                await new Promise(r => setTimeout(r, 1500));
+                if (snap.empty) { $('rouletteGift').className = 'text-7xl'; $('rouletteText').innerText = 'Phòng này chưa có thư nào để bốc 😢'; return; }
+                const pick = snap.docs[Math.floor(Math.random() * snap.size)], d = pick.data();
+                $('rouletteGift').className = 'text-7xl gift-pop'; $('rouletteGift').innerText = '💌';
+                $('rouletteText').textContent = `Bạn bốc được một thư gửi "${d.recipient}"!` + ((d.unlockAt || 0) > Date.now() ? ' (đang hẹn giờ ⏳)' : '');
+                $('rouletteOpen').href = `${window.location.origin}${window.location.pathname}?id=${pick.id}`; $('rouletteOpen').classList.remove('hidden');
+                try { confetti({ particleCount: 120, spread: 90, origin: { y: .6 }, zIndex: 100 }); } catch (e) {}
+            } catch (e) { $('rouletteGift').className = 'text-7xl'; $('rouletteText').innerText = 'Lỗi khi bốc thăm, hãy thử lại!'; }
+        }
+        function closeRoulette() { $('rouletteModal').classList.add('hidden'); $('rouletteModal').classList.remove('flex'); }
+
+        // --- Reactions trong chat ---
+        const CHAT_EMOJIS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
+        function renderChatMsg(doc) {
+            const m = doc.data(), id = doc.id, mine = m.senderId === myUserId, rx = m.reactions || {};
+            const chips = Object.entries(rx).filter(([, u]) => u && u.length).map(([e, u]) => {
+                const has = u.includes(myUserId);
+                return `<button onclick="reactChat('${id}','${e}',${has})" class="rx-chip ${has ? 'rx-mine' : ''}">${e} ${u.length}</button>`;
+            }).join('');
+            const bar = CHAT_EMOJIS.map(e => `<button onclick="reactChat('${id}','${e}',${(rx[e] || []).includes(myUserId)})">${e}</button>`).join('');
+            return `<div class="flex flex-col ${mine ? 'items-end' : 'items-start'} mb-4">
+                <span class="text-[10px] font-bold ${mine ? 'text-pink-400' : 'text-slate-400'} mb-1 flex items-center gap-1 opacity-80 pl-1 pr-1"><i class="fa-solid fa-circle-user"></i> ${esc(m.senderId)}</span>
+                <div ondblclick="toggleRxBar('${id}')" class="text-sm max-w-[85%] ${mine ? 'chat-bubble-mine shadow-pink-500/20' : 'chat-bubble-other border border-slate-700/50'} shadow-md leading-relaxed">${esc(m.text)}</div>
+                <div class="flex flex-wrap gap-1 mt-1 items-center ${mine ? 'justify-end' : ''}">${chips}<button onclick="toggleRxBar('${id}')" class="rx-add">☺+</button></div>
+                <div id="rx-${id}" class="rx-bar hidden">${bar}</div></div>`;
+        }
+        function toggleRxBar(id) { const b = $('rx-' + id); if (b) b.classList.toggle('hidden'); }
+        async function reactChat(id, emoji, has) {
+            const f = firebase.firestore.FieldValue;
+            try { await db.collection("chats").doc(id).update(new firebase.firestore.FieldPath('reactions', emoji), has ? f.arrayRemove(myUserId) : f.arrayUnion(myUserId)); } catch (e) { alert('Không thả được cảm xúc.'); }
+        }
+
+        window.onload = () => { initPage(); initShake(); initStickers(); setPinLength(); };
     </script>
 </body>
 </html>
